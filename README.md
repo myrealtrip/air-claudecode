@@ -11,6 +11,7 @@
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes                 | Anthropic's official CLI for Claude                                                   |
 | [GitHub CLI (gh)](https://cli.github.com/)                    | Yes                 | GitHub command-line tool ([Installation Guide](docs/gh-installation-guide.md))        |
 | [MCP Atlassian](https://github.com/sooperset/mcp-atlassian)   | For Jira/Confluence | Atlassian MCP server ([Installation Guide](docs/mcp-atlassian-installation-guide.md)) |
+| [gogcli](https://github.com/steipete/gogcli)                 | For Google Calendar  | Google Workspace CLI ([Installation Guide](docs/gogcli-installation-guide.md))        |
 
 ---
 
@@ -36,7 +37,7 @@ In Claude Code, run:
 /air-claudecode:setup
 ```
 
-This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP) and reports any missing dependencies.
+This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP, gogcli) and reports any missing dependencies.
 
 ### 4. Start using
 
@@ -74,6 +75,7 @@ Team-specific development conventions in [`conventions/project-conventions/`](co
 
 - [GitHub CLI Installation Guide](docs/gh-installation-guide.md)
 - [MCP Atlassian Installation Guide](docs/mcp-atlassian-installation-guide.md)
+- [gogcli Installation Guide](docs/gogcli-installation-guide.md)
 - [Git Flow Setup Guide](docs/git-flow-setup.md)
 
 ---
