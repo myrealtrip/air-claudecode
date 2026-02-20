@@ -40,7 +40,8 @@ For detailed conventions and examples, see reference files in `skills/software-e
 2. **Plan** -- choose simplest approach; ask via AskUserQuestion if ambiguous
 3. **Implement** -- follow CodingRules and project conventions; don't refactor unrelated code
 4. **Verify** -- run compilation, review for clean code compliance
-5. **Review** -- invoke `/air-claudecode:code-review` skill on the changed files
+5. **Test** -- invoke `/air-claudecode:test-engineer` skill to generate tests for the changed code
+6. **Review** -- invoke `/air-claudecode:code-review` skill on the changed files
 
 </Workflow>
 

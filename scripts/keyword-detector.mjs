@@ -35,6 +35,7 @@ const SKILL_KEYWORDS = {
     "setup": ["setup", "설정", "설치 확인", "configure air", "air-claudecode setup"],
     "code-review": ["code review", "코드 리뷰", "리뷰해", "review this", "pr review", "코드리뷰"],
     "software-engineer": ["implement", "구현", "개발", "feature", "refactor", "코드 작성", "software engineer"],
+    "test-engineer": ["test", "테스트", "테스트 작성", "write test", "test code", "테스트 코드", "테스트 만들"],
 };
 
 /**
