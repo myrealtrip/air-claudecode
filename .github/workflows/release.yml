@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p')
+          echo "tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          REPO="${{ github.repository }}"
+          CURRENT_TAG="${{ github.ref_name }}"
+          PREV_TAG="${{ steps.prev_tag.outputs.tag }}"
+
+          {
+            echo "## What's Changed"
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              git log "${PREV_TAG}..${CURRENT_TAG}" --pretty=format:"* %s (%h)" --no-merges
+            else
+              git log "${CURRENT_TAG}" --pretty=format:"* %s (%h)" --no-merges
+            fi
+            echo ""
+            echo ""
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${REPO}/compare/${PREV_TAG}...${CURRENT_TAG}"
+            else
+              echo "**Full Changelog**: https://github.com/${REPO}/commits/${CURRENT_TAG}"
+            fi
+          } > changelog.md
+
+          cat changelog.md
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: changelog.md
+          generate_release_notes: false
