@@ -21,7 +21,7 @@
 In Claude Code, run:
 
 ```
-/plugin marketplace add https://github.com/gykk16/air-claudecode
+/plugin marketplace add https://github.com/myrealtrip/air-claudecode
 ```
 
 ### 2. Install the plugin
