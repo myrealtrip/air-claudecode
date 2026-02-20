@@ -1,6 +1,7 @@
 ---
 name: git-pr-master
 description: GitHub PR CRUD -- create, review, update, merge, close with label/reviewer/milestone suggestions and Jira linking
+argument-hint: "[action] [PR-number] [details]"
 ---
 
 # Git PR Master

@@ -1,6 +1,7 @@
 ---
 name: code-review
 description: Comprehensive code review with severity-rated feedback, security/performance/testing checks, and structured Korean output
+argument-hint: "[target file or directory]"
 ---
 
 # Code Review

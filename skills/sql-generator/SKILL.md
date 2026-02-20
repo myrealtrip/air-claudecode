@@ -2,6 +2,7 @@
 name: sql-generator
 description: SQL generator with vendor-aware DDL/DML generation following strict formatting, naming, and policy rules
 model: sonnet
+argument-hint: "[query-type] [table/context]"
 ---
 
 # SQL Generator

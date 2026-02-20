@@ -1,6 +1,7 @@
 ---
 name: git-issue-master
 description: GitHub issue CRUD -- create, read, update, close with label/milestone/assignee suggestions and Jira linking
+argument-hint: "[action] [issue-number] [details]"
 ---
 
 # Git Issue Master

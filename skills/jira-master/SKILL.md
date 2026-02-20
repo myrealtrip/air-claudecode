@@ -1,6 +1,7 @@
 ---
 name: jira-master
 description: Jira ticket CRUD -- create, read, update, delete with interactive project/type/priority selection
+argument-hint: "[action] [PROJ-123] [details]"
 ---
 
 # Jira Master

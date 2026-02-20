@@ -2,6 +2,7 @@
 name: git-commit
 description: Create conventional commit messages with Jira/GitHub issue linking and user confirmation
 model: sonnet
+argument-hint: "[--auto] [message context]"
 ---
 
 # Git Commit
@@ -17,6 +18,17 @@ Generate a commit message following the Conventional Commits specification. Auto
 - User wants to create a PR -- use git-pr-master instead
 - User wants to amend or rebase -- use git commands directly
 - Nothing has changed in the working tree
+
+## Modes
+
+### Default Mode
+Shows changed files and drafted message, asks for user confirmation via `AskUserQuestion` before committing.
+
+### Auto Mode
+When user says "auto commit", "자동 커밋", or argument contains `--auto`:
+- Skip user confirmation (no `AskUserQuestion`)
+- Stage all changed files, draft message, and commit directly
+- Show commit hash and summary after completion
 
 ## Steps
 
@@ -56,9 +68,9 @@ Generate a commit message following the Conventional Commits specification. Auto
    - GitHub: `Closes #42` or `Refs #42`
    - Breaking: `BREAKING CHANGE: description`
 
-5. **Show and confirm** via `AskUserQuestion`
+5. **Show and confirm** (skip in Auto Mode -- go directly to step 6)
 
-   Present to user:
+   Present to user via `AskUserQuestion`:
    ```
    Changed files:
      M  src/auth/login.ts
@@ -83,7 +95,9 @@ Generate a commit message following the Conventional Commits specification. Auto
    - **Edit** -- modify the message
    - **Cancel** -- abort
 
-6. **Commit** only after user selects "Commit"
+6. **Commit**
+   - Default Mode: only after user selects "Commit"
+   - Auto Mode: commit immediately after drafting
    - Stage files if needed: `git add <specific files>`
    - Commit: `git commit -m "<message>"`
    - Show result: commit hash and summary
@@ -115,8 +129,8 @@ Why bad: No type, no scope, no description, missed Jira reference, didn't sugges
 - [ ] Subject is imperative mood, lowercase, under 50 chars, no period
 - [ ] Jira ticket linked in footer if detected from branch
 - [ ] GitHub issue linked in footer if detected
-- [ ] Changed files and full message shown to user before commit
-- [ ] User explicitly confirmed via AskUserQuestion
+- [ ] Changed files and full message shown to user before commit (Default Mode)
+- [ ] User explicitly confirmed via AskUserQuestion (Default Mode) or Auto Mode detected
 - [ ] Multiple concerns flagged for splitting if detected
 
 Task: {{ARGUMENTS}}

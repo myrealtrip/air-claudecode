@@ -2,6 +2,7 @@
 name: git-branch
 description: Create a git branch with conventional naming -- from Jira issue or manual description
 model: sonnet
+argument-hint: "[PROJ-123] [description]"
 ---
 
 # Git Branch
