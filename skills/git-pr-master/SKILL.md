@@ -1,6 +1,8 @@
 ---
 name: git-pr-master
 description: GitHub PR CRUD -- create, review, update, merge, close with label/reviewer/milestone suggestions and Jira linking
+context: fork
+agent: git-pr-master
 argument-hint: "[action] [PR-number] [details]"
 ---
 
@@ -12,12 +14,6 @@ Routes to the git-pr-master agent for GitHub pull request operations.
 
 ```
 /air-claudecode:git-pr-master <PR task>
-```
-
-## Routing
-
-```
-Task(subagent_type="air-claudecode:git-pr-master", prompt="{{ARGUMENTS}}")
 ```
 
 ## Capabilities
@@ -55,5 +51,3 @@ When creating a PR, use this template for the body:
 - [ ] No unnecessary changes included
 - [ ] Self-reviewed before requesting review
 ```
-
-Task: {{ARGUMENTS}}

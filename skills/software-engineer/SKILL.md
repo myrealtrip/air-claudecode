@@ -1,6 +1,8 @@
 ---
 name: software-engineer
 description: Code implementation specialist -- features, bug fixes, refactoring with clean code
+context: fork
+agent: software-engineer
 model: opus
 argument-hint: "[task description]"
 ---
@@ -21,12 +23,6 @@ Routes to the software-engineer agent for code implementation tasks.
 - User says "implement", "feature", "refactor", "구현", "개발", "코드 작성"
 - Code changes needed with clean code practices
 
-## Routing
-
-```
-Task(subagent_type="air-claudecode:software-engineer", model="opus", prompt="{{ARGUMENTS}}")
-```
-
 ## Capabilities
 - Feature implementation following clean code principles (KISS, DRY, YAGNI)
 - Bug fixes with root-cause analysis
@@ -42,5 +38,3 @@ Task(subagent_type="air-claudecode:software-engineer", model="opus", prompt="{{A
 4. **Verify** -- check compilation, review changes for clean code compliance
 5. **Test** -- invoke `/air-claudecode:test-engineer` to generate tests
 6. **Review** -- invoke `/air-claudecode:code-review` on the changed files
-
-Task: {{ARGUMENTS}}

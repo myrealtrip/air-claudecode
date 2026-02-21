@@ -81,5 +81,3 @@ select u.id
 - [ ] `varchar` for status (no `enum`), `char(1)` for booleans (`is_`/`has_`/`can_` + `_yn`)
 - [ ] No FK/index unless requested (suggest as comments)
 - [ ] Vendor-specific syntax applied
-
-Task: {{ARGUMENTS}}

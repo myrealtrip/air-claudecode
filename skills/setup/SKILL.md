@@ -1,6 +1,7 @@
 ---
 name: setup
 description: Verify air-claudecode installation and configure prerequisites (gh CLI, Atlassian MCP)
+model: sonnet
 ---
 
 # Setup
@@ -30,8 +31,8 @@ Verify air-claudecode plugin installation and check prerequisites. This is the o
    ```
    air-claudecode plugin status:
      Plugin config:  OK (.claude-plugin/plugin.json)
-     Skills:         11 found
-     Agents:         6 found
+     Skills:         13 found
+     Agents:         8 found
      Hooks:          OK (SessionStart, UserPromptSubmit)
    ```
 
@@ -81,6 +82,8 @@ Verify air-claudecode plugin installation and check prerequisites. This is the o
      /air-claudecode:test-engineer    -- Kotlin test generation (JUnit5, AssertJ, Kotest)
      /air-claudecode:sql-generator    -- SQL DDL/DML generation with strict formatting rules
      /air-claudecode:gog-calendar     -- Google Calendar management via gogcli
+     /air-claudecode:technical-writing -- Technical document writer (toss methodology)
+     /air-claudecode:sentence-refiner  -- Korean sentence refiner (toss sentence rules)
 
    Available agents:
      air-claudecode:git-pr-master    -- GitHub PR management with Jira integration
@@ -89,6 +92,8 @@ Verify air-claudecode plugin installation and check prerequisites. This is the o
      air-claudecode:code-reviewer    -- Code review specialist with structured Korean output
      air-claudecode:software-engineer -- Code implementation specialist
      air-claudecode:test-engineer    -- Test engineer for Kotlin projects
+     air-claudecode:technical-writer -- Technical document writer (toss methodology)
+     air-claudecode:sentence-refiner -- Korean sentence refiner (toss sentence rules)
    ```
 
 4. **Show keyword triggers**
@@ -106,6 +111,8 @@ Verify air-claudecode plugin installation and check prerequisites. This is the o
      "test", "테스트 작성"                -> test-engineer
      "sql", "ddl", "create table"        -> sql-generator
      "calendar", "일정", "캘린더"         -> gog-calendar
+     "기술 문서", "문서 작성", "write document" -> technical-writing
+     "문장 다듬", "문장 교정", "sentence refine" -> sentence-refiner
    ```
 
 5. **Ask next action** via `AskUserQuestion`
@@ -139,5 +146,3 @@ Why bad: Misses the point -- setup should verify everything works.
 - [ ] All skills listed with invocation examples
 - [ ] Keyword triggers shown
 - [ ] Actionable next steps offered if anything is missing
-
-Task: {{ARGUMENTS}}
