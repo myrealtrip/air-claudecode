@@ -95,5 +95,3 @@ Why bad: Generic name, no context gathered, no user confirmation.
 - [ ] Base branch explicitly selected by user
 - [ ] User confirmed branch name via AskUserQuestion
 - [ ] Branch created from latest remote (`git fetch` before checkout)
-
-Task: {{ARGUMENTS}}

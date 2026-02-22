@@ -110,5 +110,3 @@ gog calendar delete <calendarId> <eventId> --account <acct>
 | Auth expired | `gog auth add <email> --force-consent` |
 | No events | "해당 기간에 일정이 없습니다." |
 | Not installed | `brew install steipete/tap/gogcli` |
-
-Task: {{ARGUMENTS}}

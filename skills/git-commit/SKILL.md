@@ -132,5 +132,3 @@ Why bad: No type, no scope, no description, missed Jira reference, didn't sugges
 - [ ] Changed files and full message shown to user before commit (Default Mode)
 - [ ] User explicitly confirmed via AskUserQuestion (Default Mode) or Auto Mode detected
 - [ ] Multiple concerns flagged for splitting if detected
-
-Task: {{ARGUMENTS}}
