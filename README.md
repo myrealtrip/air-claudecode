@@ -53,6 +53,7 @@ This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP, gogcli) and r
 ### Update to the latest version
 
 ```
+/plugin marketplace update air-claudecode
 /plugin update air-claudecode
 ```
 
