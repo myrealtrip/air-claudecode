@@ -4,147 +4,342 @@ description: Verify air-claudecode installation and configure prerequisites (gh 
 model: sonnet
 ---
 
-# Setup
+# air-claudecode Setup
 
-Verify air-claudecode plugin installation and check prerequisites. This is the only command you need to learn -- after running this, everything else is automatic.
+This is the **only command you need to learn**. After running this, everything else is automatic.
 
-## Use When
-- First time using air-claudecode
-- User says "setup", "설정", "설치 확인", "configure air-claudecode"
-- Something isn't working and user wants to diagnose
+## Pre-flight Checks (always runs first)
 
-## Do Not Use When
-- User wants to create a skill -- guide them to `skills/<name>/SKILL.md`
-- User wants to create an agent -- guide them to `agents/<name>.md`
+**CRITICAL**: Before doing anything else, run these commands **immediately and unconditionally** at the start of every setup invocation. No questions asked -- just collect environment status.
 
-## Steps
+**Run all of these in parallel:**
 
-1. **Check plugin installation**
+```bash
+# gh CLI installation check
+which gh && echo "GH_INSTALLED=true" || echo "GH_INSTALLED=false"
 
-   Run `claude plugin list` or check if plugin directory exists:
-   - Verify `.claude-plugin/plugin.json` is present
-   - Verify `skills/` directory exists with skill files
-   - Verify `agents/` directory exists with agent files
-   - Verify `hooks/hooks.json` exists
+# gh CLI authentication check
+gh auth status 2>&1
 
-   Report:
-   ```
-   air-claudecode plugin status:
-     Plugin config:  OK (.claude-plugin/plugin.json)
-     Skills:         14 found
-     Agents:         8 found
-     Hooks:          OK (SessionStart, UserPromptSubmit)
-   ```
+# gogcli installation check
+which gog && echo "GOG_INSTALLED=true" || echo "GOG_INSTALLED=false"
+```
+```
+# Atlassian MCP availability check
+ToolSearch("+atlassian jira")
+```
 
-2. **Check prerequisites**
+Collect results into a status map. Do not display output yet -- it will be shown in the Status Report step.
 
-   **gh CLI** (required for git-pr-master, git-issue-master):
-   - Run `which gh` to check installation
-   - Run `gh auth status` to check authentication
-   - If missing: show installation guide from `docs/gh-installation-guide.md`
+### Status Classification
 
-   **Atlassian MCP** (required for jira-master):
-   - Call `ToolSearch("+atlassian jira")` to check if MCP tools are available
-   - If available: report OK with connected instance
-   - If missing: show installation guide from `docs/mcp-atlassian-installation-guide.md`
+**gh CLI** (required for: git-pr-master, git-issue-master, git-commit, git-branch):
 
-   **gogcli** (required for gog-calendar):
-   - Run `which gogcli` to check installation
-   - If missing: show installation guide from `docs/gogcli-installation-guide.md`
+| Result | Status | Fix |
+|--------|--------|-----|
+| Installed + authenticated | `OK` | Show username |
+| Installed + not authenticated | `AUTH` | `gh auth login` |
+| Not installed | `MISS` | `brew install gh && gh auth login` |
 
-   Report:
-   ```
-   Prerequisites:
-     gh CLI:         OK (authenticated as @username)
-     Atlassian MCP:  OK (connected to team.atlassian.net)
-   ```
+**Atlassian MCP** (required for: jira-master):
 
-   Or if something is missing:
-   ```
-   Prerequisites:
-     gh CLI:         MISSING -- run: brew install gh && gh auth login
-     Atlassian MCP:  NOT CONFIGURED -- see docs/mcp-atlassian-installation-guide.md
-   ```
+| Result | Status | Fix |
+|--------|--------|-----|
+| ToolSearch returns tools | `OK` | Show connected instance |
+| ToolSearch returns nothing | `MISS` | Guide from `docs/mcp-atlassian-installation-guide.md` if exists, otherwise inline instructions |
 
-3. **Show available skills and agents**
+**gogcli** (required for: gog-calendar):
 
-   List all skills with invocation examples:
-   ```
-   Available skills:
-     /air-claudecode:setup            -- This setup wizard
-     /air-claudecode:git-commit       -- Conventional commit with Jira/GitHub linking
-     /air-claudecode:git-branch       -- Create branch from Jira ticket or description
-     /air-claudecode:git-pr-master    -- GitHub PR create/review/update/merge
-     /air-claudecode:git-issue-master -- GitHub issue create/read/update/close
-     /air-claudecode:jira-master      -- Jira ticket CRUD
-     /air-claudecode:code-review      -- Comprehensive code review with severity-rated feedback
-     /air-claudecode:software-engineer -- Code implementation (features, bug fixes, refactoring)
-     /air-claudecode:test-engineer    -- Kotlin test generation (JUnit5, AssertJ, Kotest)
-     /air-claudecode:sql-generator    -- SQL DDL/DML generation with strict formatting rules
-     /air-claudecode:gog-calendar     -- Google Calendar management via gogcli
-     /air-claudecode:technical-writing -- Technical document writer (toss methodology)
-     /air-claudecode:sentence-refiner  -- Korean sentence refiner (toss sentence rules)
-     /air-claudecode:deep-dive-plan   -- Deep dive planning (analyze → plan → validate)
+| Result | Status | Fix |
+|--------|--------|-----|
+| `which gog` succeeds | `OK` | Show version if available |
+| `which gog` fails | `MISS` | Guide from `docs/gogcli-installation-guide.md` if exists, otherwise inline instructions |
 
-   Available agents:
-     air-claudecode:git-pr-master    -- GitHub PR management with Jira integration
-     air-claudecode:git-issue-master -- GitHub issue management with Jira integration
-     air-claudecode:jira-master      -- Jira ticket management via Atlassian MCP
-     air-claudecode:code-reviewer    -- Code review specialist with structured Korean output
-     air-claudecode:software-engineer -- Code implementation specialist
-     air-claudecode:test-engineer    -- Test engineer for Kotlin projects
-     air-claudecode:technical-writer -- Technical document writer (toss methodology)
-     air-claudecode:sentence-refiner -- Korean sentence refiner (toss sentence rules)
-   ```
+---
 
-4. **Show keyword triggers**
+## Pre-Setup Check: Already Configured?
 
-   Explain that natural language also works:
-   ```
-   Keyword triggers (auto-detected from your messages):
-     "commit", "커밋"                    -> git-commit
-     "create branch", "브랜치 만들"       -> git-branch
-     "pr", "pull request"                -> git-pr-master
-     "github issue", "이슈 만들"          -> git-issue-master
-     "jira", "지라", "티켓"               -> jira-master
-     "review", "리뷰", "코드 리뷰"        -> code-review
-     "implement", "구현", "개발"          -> software-engineer
-     "test", "테스트 작성"                -> test-engineer
-     "sql", "ddl", "create table"        -> sql-generator
-     "calendar", "일정", "캘린더"         -> gog-calendar
-     "기술 문서", "문서 작성", "write document" -> technical-writing
-     "문장 다듬", "문장 교정", "sentence refine" -> sentence-refiner
-     "deep dive plan", "심층 분석", "계획 수립"  -> deep-dive-plan
-   ```
+After pre-flight checks complete, detect if the plugin is already installed and working.
 
-5. **Ask next action** via `AskUserQuestion`
+Check:
+1. `.claude-plugin/plugin.json` exists and has `name` and `version`
+2. `skills/` directory is populated
+3. `agents/` directory is populated
+4. `hooks/hooks.json` exists
 
-   Options:
-   - **Done** -- setup complete, ready to use
-   - **Install gh CLI** -- show step-by-step guide
-   - **Configure Atlassian MCP** -- show MCP setup guide
-   - **Test a skill** -- try a quick skill invocation
+### If Already Configured (and no --force flag)
 
-## Examples
+If all plugin components are present AND no `--force` flag:
 
-**Good:**
-User: "/air-claudecode:setup"
-Action: Check all prerequisites, report status, show available skills.
-Why good: Comprehensive check, clear status report, actionable next steps.
+Use `AskUserQuestion` to prompt:
 
-**Good (diagnosis):**
-User: "jira 연동이 안돼"
-Action: Run setup, focus on Atlassian MCP status, show fix instructions.
-Why good: Targeted diagnosis with specific fix.
+**Question:** "air-claudecode is already installed and working (v{version}). What would you like to do?"
 
-**Bad:**
-Action: Skip prerequisite checks, just list skills.
-Why bad: Misses the point -- setup should verify everything works.
+**Options:**
+1. **Quick health check** - Show pre-flight results and plugin status, then exit
+2. **Run full setup** - Go through the complete setup wizard
+3. **Cancel** - Exit without changes
+
+**If user chooses "Quick health check":**
+- Show the Status Report (pre-flight + plugin integrity)
+- Exit
+
+**If user chooses "Run full setup":**
+- Continue with Step 1 below
+
+**If user chooses "Cancel":**
+- Exit without any changes
+
+### Force Flag Override
+
+If user passes `--force` flag, skip this check and proceed directly to Step 1.
+
+---
+
+## Usage Modes
+
+This skill handles three scenarios:
+
+| Flag | Behavior |
+|------|----------|
+| _(none)_ | Full interactive setup wizard with pre-setup detection |
+| `--check` | Quick health check -- run pre-flight + plugin integrity, report and exit |
+| `--force` | Force full setup wizard, skip pre-setup detection |
+| `--help` | Show help text and exit |
+
+### Mode Detection
+
+- If `--check` flag present -> Run Pre-flight + Status Report, then **STOP**
+- If `--force` flag present -> Skip Pre-Setup Check, run Step 1 directly
+- If `--help` flag present -> Show Help Text, then **STOP**
+- If no flags -> Run Pre-Setup Check, then Step 1 if needed
+
+---
+
+## Step 1: Plugin Integrity Check
+
+Verify the plugin structure is complete. Check each component and report status.
+
+**Check these paths relative to the plugin root:**
+
+| Component | Path | Check |
+|-----------|------|-------|
+| Plugin config | `.claude-plugin/plugin.json` | File exists, valid JSON, has `name` and `version` |
+| Skills directory | `skills/` | Directory exists, count SKILL.md files |
+| Agents directory | `agents/` | Directory exists, count `.md` files |
+| Hooks config | `hooks/hooks.json` | File exists, has `SessionStart` and `UserPromptSubmit` entries |
+| Hook scripts | `scripts/session-start.mjs` | File exists |
+| Hook scripts | `scripts/keyword-detector.mjs` | File exists |
+
+**Stop here if plugin config is missing.** Show reinstallation instructions and do not proceed to further steps.
+
+---
+
+## Step 2: Status Report
+
+Combine Pre-flight results and Plugin Integrity into a single consolidated report.
+
+Version is read from `.claude-plugin/plugin.json` (`version` field). Skill and agent counts are detected by counting files at runtime.
+
+```
+air-claudecode Setup Report (v{version})
+======================================
+
+Plugin Integrity
+  Plugin config    OK   .claude-plugin/plugin.json
+  Skills           OK   {skill_count} skills found
+  Agents           OK   {agent_count} agents found
+  Hooks config     OK   SessionStart, UserPromptSubmit
+  Hook scripts     OK   session-start.mjs, keyword-detector.mjs
+
+Prerequisites
+  gh CLI           OK   authenticated as @{username}
+  Atlassian MCP    OK   connected to {instance}
+  gogcli           OK   installed
+```
+
+With issues:
+```
+Prerequisites
+  gh CLI           OK   authenticated as @username
+  Atlassian MCP    MISS not configured -- add mcp-atlassian to Claude settings
+  gogcli           MISS not installed -- see docs/gogcli-installation-guide.md
+```
+
+If any plugin component has `FAIL`:
+```
+Plugin Integrity
+  Hooks config     FAIL hooks/hooks.json not found -- reinstall plugin
+```
+
+**If `--check` mode:** Stop here and exit.
+
+---
+
+## Step 3: Available Skills & Agents
+
+Show categorized skill and agent listings with invocation commands.
+
+### Skills by Category
+
+```
+Git & Version Control
+  /air-claudecode:git-commit        Conventional commit with Jira/GitHub linking
+  /air-claudecode:git-branch        Create branch from Jira ticket or description
+  /air-claudecode:git-pr-master     GitHub PR create/review/update/merge/close
+  /air-claudecode:git-issue-master  GitHub issue create/read/update/close
+
+Project Management
+  /air-claudecode:jira-master       Jira ticket CRUD with interactive selection
+
+Code Quality
+  /air-claudecode:code-review       Comprehensive code review (severity-rated, Korean)
+  /air-claudecode:software-engineer Code implementation, bug fixes, refactoring
+  /air-claudecode:test-engineer     Kotlin test generation (JUnit5, AssertJ, Kotest)
+
+Data & SQL
+  /air-claudecode:sql-generator     SQL DDL/DML with strict formatting rules
+
+Productivity
+  /air-claudecode:gog-calendar      Google Calendar management via gogcli
+
+Writing & Documentation
+  /air-claudecode:technical-writing Technical document writer (toss methodology)
+  /air-claudecode:sentence-refiner  Korean sentence refiner (toss sentence rules)
+
+Planning
+  /air-claudecode:deep-dive-plan    Deep dive planning (analyze -> plan -> validate)
+
+Setup
+  /air-claudecode:setup             This setup wizard
+```
+
+### Agents (for delegation via Task tool)
+
+```
+  air-claudecode:software-engineer  Code implementation specialist
+  air-claudecode:code-reviewer      Code review with structured Korean output
+  air-claudecode:test-engineer      Test engineer for Kotlin projects
+  air-claudecode:git-pr-master      GitHub PR management with Jira integration
+  air-claudecode:git-issue-master   GitHub issue management with Jira integration
+  air-claudecode:jira-master        Jira ticket management via Atlassian MCP
+  air-claudecode:technical-writer   Technical document writer (toss methodology)
+  air-claudecode:sentence-refiner   Korean sentence refiner (toss sentence rules)
+```
+
+---
+
+## Step 4: Keyword Triggers
+
+Explain that skills are auto-detected from natural language via the `keyword-detector.mjs` hook.
+
+```
+Keyword Triggers (auto-detected from your messages)
+
+  Git
+    "commit", "커밋"                         -> git-commit
+    "create branch", "브랜치 만들"            -> git-branch
+    "pr", "pull request", "PR 만들"          -> git-pr-master
+    "github issue", "이슈 만들"               -> git-issue-master
+
+  Project Management
+    "jira", "지라", "티켓"                    -> jira-master
+
+  Code Quality
+    "review", "리뷰", "코드 리뷰"             -> code-review
+    "implement", "구현", "개발"               -> software-engineer
+    "test", "테스트 작성"                     -> test-engineer
+
+  Data
+    "sql", "ddl", "create table"             -> sql-generator
+
+  Productivity
+    "calendar", "일정", "캘린더"              -> gog-calendar
+
+  Writing
+    "기술 문서", "문서 작성", "write document" -> technical-writing
+    "문장 다듬", "문장 교정", "sentence"       -> sentence-refiner
+
+  Planning
+    "deep dive plan", "심층 분석", "계획 수립" -> deep-dive-plan
+```
+
+---
+
+## Step 5: Next Action
+
+Use `AskUserQuestion` to offer next steps based on Pre-flight results.
+
+**If all prerequisites are OK:**
+- **Done** -- setup complete, ready to use
+- **Test a skill** -- try a quick skill invocation to verify
+
+**If some prerequisites are missing:**
+- **Done** -- setup complete (some features limited)
+- **Install gh CLI** -- step-by-step installation guide (only if gh is missing)
+- **Configure Atlassian MCP** -- MCP server setup guide (only if Atlassian is missing)
+- **Install gogcli** -- gogcli installation guide (only if gogcli is missing)
+
+Only show fix options for prerequisites that are actually missing.
+
+---
+
+## Help Text
+
+When user runs `/air-claudecode:setup --help`, display:
+
+```
+air-claudecode Setup - Verify installation and configure prerequisites
+
+USAGE:
+  /air-claudecode:setup           Run setup wizard (or health check if already configured)
+  /air-claudecode:setup --check   Quick health check (pre-flight + plugin integrity only)
+  /air-claudecode:setup --force   Force full setup wizard, skip pre-setup detection
+  /air-claudecode:setup --help    Show this help
+
+WHAT IT CHECKS:
+  Plugin Integrity
+    - .claude-plugin/plugin.json    Plugin configuration
+    - skills/                       Skill definitions (SKILL.md files)
+    - agents/                       Agent definitions (.md files)
+    - hooks/hooks.json              Hook configuration
+    - scripts/                      Hook scripts (session-start, keyword-detector)
+
+  Prerequisites
+    - gh CLI                        GitHub CLI (required for PR, issue, commit, branch skills)
+    - Atlassian MCP                 Atlassian MCP server (required for Jira skill)
+    - gogcli                        Google Calendar CLI (required for calendar skill)
+
+EXAMPLES:
+  /air-claudecode:setup             # First time setup or re-check
+  /air-claudecode:setup --check     # Quick status check
+  /air-claudecode:setup --force     # Re-run full wizard
+
+For more info: https://github.com/myrealtrip/air-claudecode
+```
+
+---
+
+## Output Style Rules
+
+- Use consistent column alignment in status tables
+- Status labels: `OK`, `MISS`, `FAIL`, `AUTH` (fixed width)
+- Show version number in report header
+- Keep lines under 80 characters where possible
+- Use Korean in conversational text if the user is speaking Korean
+
+---
 
 ## Final Checklist
-- [ ] Plugin files verified (plugin.json, skills/, agents/, hooks/)
-- [ ] gh CLI checked (installed + authenticated)
-- [ ] Atlassian MCP checked (available via ToolSearch)
-- [ ] All skills listed with invocation examples
-- [ ] Keyword triggers shown
-- [ ] Actionable next steps offered if anything is missing
+
+- [ ] Pre-flight checks executed first (gh CLI, Atlassian MCP, gogcli -- unconditionally, in parallel)
+- [ ] Pre-setup detection: skip full wizard if already configured (unless --force)
+- [ ] Plugin integrity verified (plugin.json, skills/, agents/, hooks/, scripts/)
+- [ ] Combined status report displayed
+- [ ] Skills listed by category with invocation commands
+- [ ] Agents listed with descriptions
+- [ ] Keyword triggers shown by category
+- [ ] Actionable next steps offered based on actual prerequisite status
+- [ ] `--check` mode exits after status report
+- [ ] `--force` mode skips pre-setup detection
+- [ ] `--help` mode shows help text and exits
