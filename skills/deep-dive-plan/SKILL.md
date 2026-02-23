@@ -3,7 +3,6 @@ name: deep-dive-plan
 description: Deep dive planning with parallel analysis, strategic planning, and validation before writing code
 model: opus
 argument-hint: "[feature or task to plan]"
-disable-model-invocation: true
 ---
 
 # Deep Dive Planning

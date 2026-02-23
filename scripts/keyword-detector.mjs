@@ -34,7 +34,7 @@ const SKILL_KEYWORDS = {
     "jira-master": ["jira", "지라", "티켓 만들", "티켓 생성", "티켓 조회", "티켓 수정", "jira ticket", "jira issue"],
     "setup": ["setup", "설정", "설치 확인", "configure air", "air-claudecode setup"],
     "code-review": ["code review", "코드 리뷰", "리뷰해", "review this", "pr review", "코드리뷰"],
-    "software-engineer": ["implement", "구현", "개발", "feature", "refactor", "코드 작성", "software engineer"],
+    "software-engineer": ["implement", "구현", "개발", "add feature", "refactor", "코드 작성", "software engineer"],
     "test-engineer": ["test", "테스트", "테스트 작성", "write test", "test code", "테스트 코드", "테스트 만들"],
     "sql-generator": ["sql", "쿼리", "query", "ddl", "dml", "select", "create table", "테이블 생성"],
     "gog-calendar": ["일정", "스케줄", "schedule", "calendar", "캘린더", "오늘 일정", "이번주 일정", "내일 일정", "meeting", "미팅 잡아"],
@@ -50,18 +50,26 @@ const AGENT_KEYWORDS = {
     // Currently all agents have matching skills, add agent-only entries here if needed
 };
 
+function matchesKeyword(text, keyword) {
+    const hasAsciiLetter = /[a-zA-Z]/.test(keyword);
+    if (hasAsciiLetter) {
+        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(`\\b${escaped}\\b`, "i").test(text);
+    }
+    return text.toLowerCase().includes(keyword.toLowerCase());
+}
+
 function detectSkill(userPrompt) {
-    const lower = userPrompt.toLowerCase();
     for (const [skill, keywords] of Object.entries(SKILL_KEYWORDS)) {
         for (const keyword of keywords) {
-            if (lower.includes(keyword.toLowerCase())) {
+            if (matchesKeyword(userPrompt, keyword)) {
                 return {type: "skill", name: skill};
             }
         }
     }
     for (const [agent, keywords] of Object.entries(AGENT_KEYWORDS)) {
         for (const keyword of keywords) {
-            if (lower.includes(keyword.toLowerCase())) {
+            if (matchesKeyword(userPrompt, keyword)) {
                 return {type: "agent", name: agent};
             }
         }
