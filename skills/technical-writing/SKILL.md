@@ -35,3 +35,7 @@ Write technical documents following the [toss/technical-writing](https://github.
 - Structure documents with value-first, predictable layout
 - Write clear sentences following Korean technical writing rules
 - Generate complete markdown documents ready for review
+
+## Integration
+
+- `/air-claudecode:sql-generator` -- when the document includes SQL examples (DDL/DML), delegate SQL generation to this skill instead of writing SQL directly
