@@ -117,33 +117,22 @@ async function main() {
     let message;
 
     if (match.type === "skill") {
-        message = `Detected relevant skill: **${match.name}**
-
-Consider using the \`/air-claudecode:${match.name}\` skill for this task. Invoke it with:
-
-\`\`\`
-/air-claudecode:${match.name} ${userPrompt.slice(0, 100)}
-\`\`\`
-
-Or invoke the Skill tool: \`Skill(skill="air-claudecode:${match.name}", args="${userPrompt.replace(/"/g, '\\"').slice(0, 150)}")\``;
+        message = `Detected relevant skill: **${match.name}**. Use the \`/air-claudecode:${match.name}\` skill for this task. Invoke: Skill(skill="air-claudecode:${match.name}", args="${userPrompt.replace(/"/g, '\\"').slice(0, 150)}")`;
     } else {
         const agentPrompt = await loadAgentPrompt(match.name);
         if (!agentPrompt) {
             console.log(JSON.stringify({continue: true}));
             return;
         }
-        message = `Detected relevant agent: **${match.name}**
-
-Delegate to the ${match.name} agent:
-
-\`\`\`
-Task(subagent_type="air-claudecode:${match.name}", prompt="${userPrompt.replace(/"/g, '\\"').slice(0, 200)}")
-\`\`\`
-
-Agent prompt: ${AGENTS_DIR}/${match.name}.md`;
+        message = `Detected relevant agent: **${match.name}**. Delegate: Task(subagent_type="air-claudecode:${match.name}", prompt="${userPrompt.replace(/"/g, '\\"').slice(0, 200)}")`;
     }
 
-    console.log(JSON.stringify({continue: true, message}));
+    console.log(JSON.stringify({
+        hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit",
+            additionalContext: message,
+        },
+    }));
 }
 
 main().catch(() => {

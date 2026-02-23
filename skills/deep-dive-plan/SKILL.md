@@ -5,24 +5,25 @@ model: opus
 argument-hint: "[feature or task to plan]"
 ---
 
-# Deep Dive Planning
+# Deep Dive Planning System
 
-Orchestrate specialized agents in 3 sequential phases to produce a validated implementation plan before writing any code. Parallel agents within each phase maximize speed; sequential phases preserve data dependencies.
+## Overview
 
-## Use When
+This skill orchestrates specialized agent teams to produce comprehensive implementation plans before writing any code. Each phase uses parallel sub-agents for speed, while phases run sequentially to maintain data dependencies.
 
+**Use this skill when:**
 - Complex features requiring architectural decisions
 - High-risk changes needing careful analysis
 - Multi-component system modifications
 - Unclear implementation paths requiring exploration
-- User says "deep dive plan", "심층 분석", "계획 수립", "deep plan"
+- Need for documented decision-making process
 
-## Do Not Use When
-
+**Do NOT use for:**
 - Simple bug fixes or trivial changes
 - Well-understood patterns with clear implementation
 - Quick prototypes or experiments
-- User just wants code review -- use `code-review` instead
+
+**IMPORTANT**: When open questions or ambiguities arise at any phase, you MUST use `AskUserQuestion` to clarify with the user before proceeding. Never assume -- ask. Proceeding with unresolved questions leads to flawed plans that fail validation.
 
 ## Three-Phase System
 
@@ -42,10 +43,14 @@ Phase 3: VALIDATE (parallel)
   APPROVED / NEEDS REVISION / REJECTED
 ```
 
-## Agent Resolution
+## Agent Type Resolution
 
-| Role | Preferred Type | Fallback | Model |
-|------|---------------|----------|-------|
+This skill uses specialized OMC agents when available, with built-in Claude Code fallbacks.
+
+**Detection**: Try the OMC type first. If the Task tool rejects the `subagent_type`, use the fallback.
+
+| Role | OMC Type (preferred) | Fallback Type | Model |
+|------|---------------------|---------------|-------|
 | Explorer | `oh-my-claudecode:explore` | `Explore` | haiku |
 | Analyst | `oh-my-claudecode:analyst` | `general-purpose` | opus |
 | Risk Assessor | `oh-my-claudecode:security-reviewer` | `general-purpose` | sonnet |
@@ -54,7 +59,7 @@ Phase 3: VALIDATE (parallel)
 | Critic | `oh-my-claudecode:critic` | `general-purpose` | opus |
 | Quality Reviewer | `oh-my-claudecode:quality-reviewer` | `general-purpose` | sonnet |
 
-Try the preferred type first. If Task tool rejects the `subagent_type`, use the fallback with the full role description in the prompt.
+> **Note**: OMC agents carry role-specific system prompts that improve output quality. Fallbacks work correctly but rely entirely on the prompt you provide, so include the full role description in the prompt when using fallbacks.
 
 ## Steps
 
@@ -63,9 +68,9 @@ Try the preferred type first. If Task tool rejects the `subagent_type`, use the 
 Summarize the user's request and determine scope:
 
 ```
-Request: [what user wants]
+User Request: [what user wants]
 Scope: file | module | project | system
-Complexity: Low | Medium | High | Critical
+Estimated Complexity: Low | Medium | High | Critical
 ```
 
 ### 2. Phase 1 -- Analyze (parallel)
@@ -78,9 +83,25 @@ Launch 3 agents in parallel using `Task` with `run_in_background: true`:
 
 For detailed agent prompts, see [references/agent-prompts.md](references/agent-prompts.md).
 
+```
+Launch in parallel (use run_in_background: true for each):
+
+1. Task(subagent_type="oh-my-claudecode:explore",
+        model="haiku",
+        prompt="[Explorer prompt with USER REQUEST]")
+
+2. Task(subagent_type="oh-my-claudecode:analyst",
+        model="opus",
+        prompt="[Analyst prompt with USER REQUEST]")
+
+3. Task(subagent_type="oh-my-claudecode:security-reviewer",
+        model="sonnet",
+        prompt="[Risk Assessor prompt with USER REQUEST]")
+```
+
 Wait for all 3 to complete, then **synthesize** into a unified Analysis Report. See [references/output-templates.md](references/output-templates.md) for the synthesis format.
 
-If any agent's findings raise questions, use `AskUserQuestion` before proceeding.
+If any agent's findings raise open questions, use `AskUserQuestion` before proceeding to Phase 2.
 
 ### 3. Phase 2 -- Plan (sequential)
 
@@ -88,7 +109,15 @@ Launch 1 agent after Analysis is complete:
 
 - **Planner** (opus) -- receives the full Analysis Report, produces Implementation Strategy
 
-The strategy includes: approach, architectural decisions with rationales, phased task breakdown, parallel opportunities, success criteria, rollback strategy, and risk mitigation.
+```
+Task(subagent_type="oh-my-claudecode:planner",
+     model="opus",
+     prompt="[Planner prompt with SYNTHESIZED ANALYSIS REPORT]")
+```
+
+For the detailed planner prompt, see [references/agent-prompts.md](references/agent-prompts.md).
+
+The strategy includes: approach, architectural decisions with rationales, phased task breakdown, parallel opportunities, timeline estimate, success criteria, rollback strategy, and risk mitigation.
 
 Wait for Planner output before proceeding.
 
@@ -102,9 +131,27 @@ Launch 3 agents in parallel using `Task` with `run_in_background: true`:
 
 Each agent receives both the Analysis Report and Implementation Strategy.
 
+```
+Launch in parallel (use run_in_background: true for each):
+
+1. Task(subagent_type="oh-my-claudecode:verifier",
+        model="sonnet",
+        prompt="[Verifier prompt with ANALYSIS + PLAN]")
+
+2. Task(subagent_type="oh-my-claudecode:critic",
+        model="opus",
+        prompt="[Critic prompt with ANALYSIS + PLAN]")
+
+3. Task(subagent_type="oh-my-claudecode:quality-reviewer",
+        model="sonnet",
+        prompt="[Quality Reviewer prompt with ANALYSIS + PLAN]")
+```
+
+For detailed agent prompts, see [references/agent-prompts.md](references/agent-prompts.md).
+
 Wait for all 3 to complete, then **synthesize** into a Validation Report with a decision.
 
-### 5. Decision and Iteration
+### 5. Iteration (If Needed)
 
 | Decision | Action |
 |----------|--------|
@@ -117,11 +164,20 @@ Wait for all 3 to complete, then **synthesize** into a Validation Report with a 
 - Major concerns only -> NEEDS REVISION
 - Minor suggestions only -> APPROVED
 
+**How to iterate:**
+1. Read consolidated feedback from all 3 validators
+2. Identify which phase needs re-run:
+   - Missing analysis / wrong assumptions -> Re-run specific Analyzer agent(s) (not full team)
+   - Flawed strategy / poor decisions -> Re-run Planner with feedback
+   - Need user clarification -> Use AskUserQuestion tool
+3. Re-run only what's needed with Validator feedback included in prompt
+4. Always re-validate after changes
+
 **Iteration limit:** Maximum 3 rounds. If still not approved, ask user for guidance.
 
 ### 6. Finalize
 
-1. Consolidate all reports into `.claudedocs/deep-dive-plan-[feature-name].md`
+1. Consolidate all reports into `.claudedocs/deep-dive-plan/{document-name}.md` (or user-specified path)
 2. Present executive summary (2-3 sentences: What, Why, How, Risk Level)
 3. Confirm with user via `AskUserQuestion` (Approve / Revise / Cancel)
 
@@ -135,18 +191,35 @@ For the final output format, see [references/output-templates.md](references/out
 - **Synthesize before handoff** -- combine parallel outputs before passing to next phase
 - **Re-run surgically** -- on iteration, only re-run the specific agent(s) that failed
 - **User approval required** -- always confirm the final plan before any implementation
+- **Right-size agent models** -- haiku for exploration, opus for deep reasoning, sonnet for verification
+- **Pass complete context** -- each phase needs full synthesized output from previous phase
 
-## Examples
+## Best Practices
 
-**Good:**
-User: "deep dive plan for adding OAuth2 authentication"
-Action: Run all 3 phases, produce validated plan with architectural decisions, risk mitigation, and phased implementation.
-Why good: Complex feature with security implications benefits from multi-agent analysis.
+1. **Always use Task tool for agents** -- never perform agent work yourself, delegate to Task agents
+2. **Parallel within, sequential between** -- sub-agents run in parallel; phases run sequentially
+3. **Use `run_in_background: true`** -- launch parallel agents as background tasks for true concurrency
+4. **Synthesize before handoff** -- combine parallel outputs into coherent report before next phase
+5. **Let agents work independently** -- don't inject opinions between agent phases
+6. **Trust the process** -- if Validator Team rejects, iterate; don't skip validation
+7. **Re-run surgically** -- on iteration, only re-run the specific agent(s) that need changes
+8. **User approval required** -- always confirm final plan before implementation
 
-**Bad:**
-User: "fix the typo in the README"
-Action: Launch deep dive planning with 7 agents.
-Why bad: Trivial change doesn't need planning. Just fix it directly.
+## Anti-Patterns to Avoid
+
+- **Doing agent work yourself** -- never perform analysis/planning/validation directly
+- **Running phases in parallel** -- Planner needs Analysis; Validators need both; phases must be sequential
+- **Using general-purpose for everything** -- use specialized agent types for better results
+- **Skipping synthesis** -- don't pass raw parallel outputs directly; synthesize first
+- **Skipping Validator Team** -- never implement without validation approval
+- **Running full team on iteration** -- if only one sub-area failed, re-run only that agent
+- **Rushing to code** -- this skill is about planning, not implementation
+- **Analysis paralysis** -- if Validator Team approves, move forward; don't over-iterate
+
+## Output
+
+- Default: `.claudedocs/deep-dive-plan/{document-name}.md` in working directory
+- User can specify a custom output path
 
 ## Integration
 
@@ -161,5 +234,9 @@ After the plan is approved:
 - [ ] Analysis covers: architecture, dependencies, constraints, risks, impact areas
 - [ ] Plan includes: approach, decisions with rationale, phased tasks, rollback strategy
 - [ ] Validation approves with no critical or major issues remaining
-- [ ] Final plan saved to `.claudedocs/deep-dive-plan-[feature-name].md`
+- [ ] Final plan saved to `.claudedocs/deep-dive-plan/{document-name}.md`
 - [ ] User confirmed the plan via AskUserQuestion
+
+## User Request
+
+$ARGUMENTS

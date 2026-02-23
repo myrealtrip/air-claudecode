@@ -27,7 +27,7 @@ Synthesize Explorer + Analyst + Risk Assessor findings into:
 [From Risk Assessor: files, components, tests]
 
 ### 6. Recommendations for Planner
-[Synthesized from all three agents]
+[Synthesized from all three agents' findings]
 - Preferred approach
 - Approaches to avoid
 - Open questions for user
@@ -76,14 +76,15 @@ Required Actions: [If not approved, what must change]
 
 ## Final Plan Document
 
-Save to `.claudedocs/deep-dive-plan-[feature-name].md`:
+Save to `.claudedocs/deep-dive-plan/{document-name}.md` (or user-specified path):
 
 ```markdown
 # Deep Dive Plan: [Feature Name]
 
-Created: [Date]
-Status: Validated and Approved
-Overall Risk: [Low / Medium / High / Critical]
+**Created**: [Date]
+**Status**: Validated and Approved
+**Overall Risk**: [Low/Medium/High/Critical]
+**Agents Used**: Explorer(haiku) + Analyst(opus) + Risk Assessor(sonnet) | Planner(opus) | Verifier(sonnet) + Critic(opus) + Quality Reviewer(sonnet)
 
 ---
 
@@ -93,17 +94,17 @@ Overall Risk: [Low / Medium / High / Critical]
 ---
 
 ## Analysis Report
-[Full synthesized analysis from Phase 1]
+[Synthesized from Explorer + Analyst + Risk Assessor]
 
 ---
 
 ## Implementation Strategy
-[Full planner output from Phase 2]
+[Full Planner output]
 
 ---
 
 ## Validation Report
-[Full synthesized validation from Phase 3]
+[Synthesized from Verifier + Critic + Quality Reviewer]
 
 ---
 
