@@ -35,3 +35,4 @@ Important rules:
 - Present fetched options to user for selection -- do not guess
 - For delete operations -- warn that the action cannot be undone
 - If a ticket ID is mentioned in user input -- fetch and display it first
+- After every action, show the Jira ticket URL (e.g., `https://<domain>/browse/<ISSUE-KEY>`)

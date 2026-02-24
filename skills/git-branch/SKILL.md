@@ -43,7 +43,7 @@ Create a git branch with conventional naming. Fetches Jira ticket details when a
    Format without Jira: `{prefix}{kebab-summary}`
    - Summary: lowercase, spaces to hyphens, strip special characters
    - Max 3-4 words -- keep it short and recognizable
-   - Total branch name should not exceed 50 chars
+   - Total branch name should not exceed 35 chars
 
    Examples:
    - With Jira: `feature/PROJ-123-jwt-refresh-token`
@@ -91,7 +91,7 @@ Why bad: Generic name, no context gathered, no user confirmation.
 - [ ] Jira ticket fetched if ID was provided or detectable
 - [ ] If no Jira -- description gathered from user input
 - [ ] Branch prefix matches type (fix/ for bugs, feature/ for others)
-- [ ] Summary is kebab-case, max 3-4 words, total branch name under 50 chars
+- [ ] Summary is kebab-case, max 3-4 words, total branch name under 35 chars
 - [ ] Base branch explicitly selected by user
 - [ ] User confirmed branch name via AskUserQuestion
 - [ ] Branch created from latest remote (`git fetch` before checkout)

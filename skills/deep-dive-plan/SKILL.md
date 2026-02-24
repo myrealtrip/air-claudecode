@@ -227,6 +227,7 @@ After the plan is approved:
 - `/air-claudecode:software-engineer` for implementation
 - `/air-claudecode:code-review` after each phase
 - `/air-claudecode:git-commit` for incremental commits
+- `/air-claudecode:sql-generator` when the plan involves SQL (DDL/DML) -- delegate SQL generation to this skill instead of writing SQL directly
 
 ## Final Checklist
 
