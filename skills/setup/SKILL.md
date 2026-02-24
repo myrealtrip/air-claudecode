@@ -27,6 +27,9 @@ which gog && echo "GOG_INSTALLED=true" || echo "GOG_INSTALLED=false"
 ```
 # Atlassian MCP availability check
 ToolSearch("+atlassian jira")
+
+# Slack MCP availability check
+ToolSearch("+slack")
 ```
 
 Collect results into a status map. Do not display output yet -- it will be shown in the Status Report step.
@@ -53,7 +56,14 @@ Collect results into a status map. Do not display output yet -- it will be shown
 | Result | Status | Fix |
 |--------|--------|-----|
 | `which gog` succeeds | `OK` | Show version if available |
-| `which gog` fails | `MISS` | Guide from `docs/gogcli-installation-guide.md` if exists, otherwise inline instructions |
+| `which gog` fails | `MISS` | Guide from `docs/install-guide/gogcli-installation-guide.md` if exists, otherwise inline instructions |
+
+**Slack MCP** (optional -- enables Slack integration):
+
+| Result | Status | Fix |
+|--------|--------|-----|
+| ToolSearch returns slack tools | `OK` | Show connected status |
+| ToolSearch returns nothing | `MISS` | Guide from `docs/install-guide/slack-mcp-installation-guide.md` if exists, otherwise inline instructions |
 
 ---
 
@@ -155,6 +165,7 @@ Plugin Integrity
 Prerequisites
   gh CLI           OK   authenticated as @{username}
   Atlassian MCP    OK   connected to {instance}
+  Slack MCP        OK   connected
   gogcli           OK   installed
 ```
 
@@ -163,7 +174,8 @@ With issues:
 Prerequisites
   gh CLI           OK   authenticated as @username
   Atlassian MCP    MISS not configured -- add mcp-atlassian to Claude settings
-  gogcli           MISS not installed -- see docs/gogcli-installation-guide.md
+  Slack MCP        MISS not configured -- see docs/install-guide/slack-mcp-installation-guide.md
+  gogcli           MISS not installed -- see docs/install-guide/gogcli-installation-guide.md
 ```
 
 If any plugin component has `FAIL`:
@@ -191,6 +203,10 @@ Git & Version Control
 
 Project Management
   /air-claudecode:jira-master       Jira ticket CRUD with interactive selection
+  /air-claudecode:confluence-master Confluence page CRUD with space/label management
+
+Communication
+  /air-claudecode:slack-master      Slack read/search/send messages, canvases
 
 Code Quality
   /air-claudecode:code-review       Comprehensive code review (severity-rated, Korean)
@@ -223,6 +239,8 @@ Setup
   air-claudecode:git-pr-master      GitHub PR management with Jira integration
   air-claudecode:git-issue-master   GitHub issue management with Jira integration
   air-claudecode:jira-master        Jira ticket management via Atlassian MCP
+  air-claudecode:confluence-master  Confluence page management via Atlassian MCP
+  air-claudecode:slack-master       Slack messaging via Slack MCP
   air-claudecode:technical-writer   Technical document writer (toss methodology)
   air-claudecode:sentence-refiner   Korean sentence refiner (toss sentence rules)
 ```
@@ -244,6 +262,9 @@ Keyword Triggers (auto-detected from your messages)
 
   Project Management
     "jira", "지라", "티켓"                    -> jira-master
+
+  Communication
+    "slack", "슬랙", "슬랙 메시지"            -> slack-master
 
   Code Quality
     "review", "리뷰", "코드 리뷰"             -> code-review
@@ -278,6 +299,7 @@ Use `AskUserQuestion` to offer next steps based on Pre-flight results.
 - **Done** -- setup complete (some features limited)
 - **Install gh CLI** -- step-by-step installation guide (only if gh is missing)
 - **Configure Atlassian MCP** -- MCP server setup guide (only if Atlassian is missing)
+- **Configure Slack MCP** -- Slack MCP setup guide (only if Slack is missing)
 - **Install gogcli** -- gogcli installation guide (only if gogcli is missing)
 
 Only show fix options for prerequisites that are actually missing.
@@ -332,7 +354,7 @@ For more info: https://github.com/myrealtrip/air-claudecode
 
 ## Final Checklist
 
-- [ ] Pre-flight checks executed first (gh CLI, Atlassian MCP, gogcli -- unconditionally, in parallel)
+- [ ] Pre-flight checks executed first (gh CLI, Atlassian MCP, Slack MCP, gogcli -- unconditionally, in parallel)
 - [ ] Pre-setup detection: skip full wizard if already configured (unless --force)
 - [ ] Plugin integrity verified (plugin.json, skills/, agents/, hooks/, scripts/)
 - [ ] Combined status report displayed
