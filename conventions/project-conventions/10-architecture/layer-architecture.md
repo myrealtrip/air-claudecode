@@ -3,64 +3,41 @@
 ## 4-Layer Structure
 
 ```
-Bootstrap (Controller → Facade)
-  → Domain Application (QueryApplication / CommandApplication)
-    → Domain Service (Business Logic)
-      → Domain Repository (JpaRepository / QueryRepository)
-        → Domain Entity
+Presentation (Controller)
+  → Application (UseCase / Application Service)
+    → Domain (Model / Policy / Service / Event)
+      ← Infrastructure (Persistence / Client / Event Listener)
 ```
 
-Upper layers depend on lower layers only. Reverse dependencies prohibited.
+Upper layers depend on lower layers only. Infrastructure depends on Domain. Reverse dependencies prohibited.
 
 ---
 
-## Layer 1: Bootstrap (HTTP Entry Point)
+## Layer 1: Presentation (HTTP Entry Point)
 
 ### Controller
 
 | Item | Rule |
 |------|------|
-| Location | `{appname}/api/{Feature}Controller.kt` |
-| Dependency Injection | **Facade only** (no Service/Application/Repository) |
+| Location | `presentation/external/{Feature}ExternalController.kt` or `presentation/internal/admin/{Feature}AdminController.kt` |
+| Dependency Injection | **UseCase only** (no Service/Repository/Infrastructure) |
 | Return Type | `ResponseEntity<ApiResource<T>>` |
-| Responsibility | Converts API Request DTO to Domain Request DTO |
+| Responsibility | Converts Request to Command, calls UseCase, wraps Result into Response |
 
 ```kotlin
 @RestController
-@RequestMapping("/api/holidays")
-class HolidayController(private val holidayFacade: HolidayFacade) {
-    @GetMapping("/{year}")
-    fun getByYear(@PathVariable year: Int, pageable: Pageable): ResponseEntity<ApiResource<List<HolidayDto>>> =
-        ApiResource.ofPage(holidayFacade.findPageByYear(year, pageable))
+@RequestMapping("/api/v1/holidays")
+class HolidayExternalController(
+    private val getHolidayUseCase: GetHolidayUseCase,
+    private val createHolidayUseCase: CreateHolidayUseCase,
+) {
+    @GetMapping("/{id}")
+    fun getById(@PathVariable id: Long): ResponseEntity<ApiResource<HolidayResponse>> =
+        ResponseEntity.ok(ApiResource.success(HolidayResponse.from(getHolidayUseCase(id))))
 
     @PostMapping
-    fun create(@Valid @RequestBody request: CreateHolidayApiRequest): ResponseEntity<ApiResource<HolidayDto>> {
-        val holiday = holidayFacade.create(CreateHolidayRequest(request.holidayDate, request.name))
-        return ApiResource.success(holiday)
-    }
-}
-```
-
-### Facade (`@Component`)
-
-| Item | Rule |
-|------|------|
-| Location | `{appname}/facade/{Feature}Facade.kt` |
-| Dependency Injection | `QueryApplication`, `CommandApplication` |
-| Annotation | `@Component` |
-| KST Conversion | `.toKst()` happens here |
-
-```kotlin
-@Component
-class HolidayFacade(
-    private val holidayQueryApplication: HolidayQueryApplication,
-    private val holidayCommandApplication: HolidayCommandApplication,
-) {
-    fun findPageByYear(year: Int, pageable: Pageable): Page<HolidayDto> =
-        holidayQueryApplication.findPageByYear(year, pageable).map { HolidayDto.from(it) }
-
-    fun create(request: CreateHolidayRequest): HolidayDto =
-        HolidayDto.from(holidayCommandApplication.create(request))
+    fun create(@Valid @RequestBody request: CreateHolidayRequest): ResponseEntity<ApiResource<HolidayResponse>> =
+        ResponseEntity.ok(ApiResource.success(HolidayResponse.from(createHolidayUseCase(request.toCommand()))))
 }
 ```
 
@@ -68,98 +45,256 @@ class HolidayFacade(
 
 | DTO Type | Location | Example |
 |----------|----------|---------|
-| API Request DTO | `{appname}/api/dto/` | `CreateHolidayApiRequest` |
-| API Response DTO | `{appname}/api/dto/` | `HolidayDto` |
-| Domain Request DTO | `domain/{feature}/dto/` | `CreateHolidayRequest` |
-| Domain Info DTO | `domain/{feature}/dto/` | `HolidayInfo` |
+| Presentation Request | `presentation/external/request/` | `CreateHolidayRequest` |
+| Presentation Response | `presentation/external/response/` | `HolidayResponse` |
+| Application Command | `application/dto/command/` | `CreateHolidayCommand` |
+| Application Result | `application/dto/result/` | `HolidayResult` |
 
 ---
 
-## Layer 2: Domain Application (Orchestration)
+## Layer 2: Application (Orchestration)
 
-**Package**: `{projectGroup}.domain.{feature}.application`
+**Package**: `{projectGroup}.{appname}.application`
 
-Thin delegation layer for transaction boundaries (CQRS-lite). Can inject Services from **multiple domains**; must **NOT** inject another Application.
+Orchestrates domain logic through UseCase classes. UseCase owns the transaction boundary. Application Service delegates repository access.
 
-### QueryApplication and CommandApplication
+### UseCase
 
-| Item | QueryApplication | CommandApplication |
-|------|------------------|--------------------|
-| Annotation | `@Service`, `@Transactional(readOnly = true)` | `@Service`, `@Transactional` |
-| DataSource | Slave (Reader) | Master (Writer) |
-| Return Type | `{Feature}Info` or `Page<{Feature}Info>` | `{Feature}Info` |
-| Injection | Service only | Service only |
+| Item | Rule |
+|------|------|
+| Annotation | `@Service`, `@Transactional(readOnly = true)` or `@Transactional` |
+| Interface | **None** — concrete class only |
+| Invocation | `operator fun invoke()` as primary entry point |
+| Injection | Application Service, Domain Policy, Domain Service, EventPublisher |
 
 ```kotlin
 @Service
 @Transactional(readOnly = true)
-class HolidayQueryApplication(private val holidayService: HolidayService) {
-    fun findPageByYear(year: Int, pageable: Pageable): Page<HolidayInfo> =
-        holidayService.findPageByYear(year, pageable)
+class GetHolidayUseCase(private val holidayService: HolidayService) {
+    operator fun invoke(id: Long): HolidayResult =
+        holidayService.findById(id)
 }
 
 @Service
 @Transactional
-class HolidayCommandApplication(private val holidayService: HolidayService) {
-    fun create(request: CreateHolidayRequest): HolidayInfo = holidayService.create(request)
-    fun update(id: Long, request: UpdateHolidayRequest): HolidayInfo = holidayService.update(id, request)
-    fun delete(id: Long) = holidayService.delete(id)
+class CreateHolidayUseCase(
+    private val holidayService: HolidayService,
+    private val holidayLimitPolicy: HolidayLimitPolicy,
+    private val applicationEventPublisher: ApplicationEventPublisher,
+) {
+    operator fun invoke(command: CreateHolidayCommand): HolidayResult {
+        holidayLimitPolicy.validate(command.holidayDate)
+        val result = holidayService.create(command)
+        applicationEventPublisher.publishEvent(HolidayCreatedEvent(result.id))
+        return result
+    }
 }
 ```
 
----
-
-## Layer 3: Domain Service (Business Logic)
-
-**Package**: `{projectGroup}.domain.{feature}.service`
+### Application Service
 
 | Item | Rule |
 |------|------|
 | Annotation | `@Service` |
-| Transaction | **No** `@Transactional` (propagated from Application) |
-| Dependency Injection | Repository only (JpaRepository, QueryRepository) |
-| Return Type | `{Feature}Info` |
-| Conversion | `{Feature}Info.from(entity)` |
-| Same-layer injection | Other Service injection allowed |
+| Transaction | **No** `@Transactional` (propagated from UseCase) |
+| Dependency Injection | Repository, Mapper |
+| Return Type | `{Feature}Result` |
+| Responsibility | Repository access delegation, Domain ↔ JPA Entity mapping via Mapper |
 
 ```kotlin
 @Service
 class HolidayService(
     private val holidayJpaRepository: HolidayJpaRepository,
     private val holidayQueryRepository: HolidayQueryRepository,
+    private val holidayMapper: HolidayMapper,
 ) {
-    fun findPageByYear(year: Int, pageable: Pageable): Page<HolidayInfo> =
-        holidayQueryRepository.fetchPageByYear(year, pageable)
-
-    fun findById(id: Long): HolidayInfo =
+    fun findById(id: Long): HolidayResult =
         holidayJpaRepository.findById(id)
-            .map { HolidayInfo.from(it) }
+            .map { holidayMapper.toDomain(it) }
+            .map { HolidayResult.from(it) }
             .orElseThrow { HolidayNotFoundException(id) }
 
-    fun create(request: CreateHolidayRequest): HolidayInfo =
-        HolidayInfo.from(holidayJpaRepository.save(Holiday.create(request.holidayDate, request.name)))
-
-    fun update(id: Long, request: UpdateHolidayRequest): HolidayInfo {
-        val entity = holidayJpaRepository.findById(id).orElseThrow { HolidayNotFoundException(id) }
-        entity.update(request.holidayDate, request.name)
-        return HolidayInfo.from(entity)  // JPA dirty checking
+    fun create(command: CreateHolidayCommand): HolidayResult {
+        val domain = Holiday.create(command.holidayDate, command.name)
+        val entity = holidayMapper.toEntity(domain)
+        val saved = holidayJpaRepository.save(entity)
+        return HolidayResult.from(holidayMapper.toDomain(saved))
     }
+
+    fun findPageByYear(year: Int, pageable: Pageable): Page<HolidayResult> =
+        holidayQueryRepository.fetchPageByYear(year, pageable)
 }
 ```
 
 ---
 
-## Layer 4: Domain Repository (Persistence)
+## Layer 3: Domain (Business Logic)
 
-**Package**: `{projectGroup}.domain.{feature}.repository`
+**Package**: `{projectGroup}.{appname}.domain`
 
-### JpaRepository — simple CRUD, derived queries, `@Query`
+Pure Kotlin. No Spring, no JPA, no external framework dependencies.
+
+### Domain Model
+
+| Item | Rule |
+|------|------|
+| Location | `domain/model/{feature}/` |
+| Framework | **None** — pure Kotlin |
+| Mutations | Via business methods only |
+| Factory | `companion object { fun create(...) }` |
+
+```kotlin
+class Holiday private constructor(
+    val id: Long? = null,
+    val holidayDate: LocalDate,
+    val name: String,
+) {
+    fun update(holidayDate: LocalDate, name: String): Holiday =
+        Holiday(id = this.id, holidayDate = holidayDate, name = name)
+
+    companion object {
+        fun create(holidayDate: LocalDate, name: String): Holiday =
+            Holiday(holidayDate = holidayDate, name = name)
+    }
+}
+
+data class Money(val amount: BigDecimal, val currency: Currency) {
+    operator fun plus(other: Money): Money {
+        require(currency == other.currency) { "Currency mismatch" }
+        return Money(amount + other.amount, currency)
+    }
+}
+```
+
+### Domain Policy
+
+| Item | Rule |
+|------|------|
+| Location | `domain/policy/` |
+| Annotation | `@Component` |
+| Responsibility | Allow/deny validation rules |
+| Violation | Throw domain exception |
+
+```kotlin
+@Component
+class HolidayLimitPolicy {
+    fun validate(holidayDate: LocalDate) {
+        require(holidayDate.isAfter(LocalDate.now())) {
+            throw HolidayInvalidStateException("Holiday date must be in the future")
+        }
+    }
+}
+
+@Component
+class OrderLimitPolicy(private val orderService: OrderService) {
+    fun validate(userId: Long) {
+        val count = orderService.countActiveByUserId(userId)
+        if (count >= MAX_ACTIVE_ORDERS) {
+            throw OrderLimitExceededException(userId, count)
+        }
+    }
+
+    companion object {
+        private const val MAX_ACTIVE_ORDERS = 10
+    }
+}
+```
+
+### Domain Service
+
+| Item | Rule |
+|------|------|
+| Location | `domain/service/` |
+| Annotation | `@Component` |
+| Responsibility | Value computation, multi-aggregate coordination |
+| Dependency | Domain Model only (no Repository, no Infrastructure) |
+
+```kotlin
+@Component
+class DiscountCalculator {
+    fun calculate(order: Order, membership: Membership): Money {
+        val baseDiscount = when (membership.grade) {
+            Grade.GOLD -> order.totalAmount * 0.1
+            Grade.SILVER -> order.totalAmount * 0.05
+            else -> Money.ZERO
+        }
+        return baseDiscount
+    }
+}
+```
+
+### Domain Event
+
+| Item | Rule |
+|------|------|
+| Location | `domain/event/` |
+| Structure | Independent `data class` per event (not sealed) |
+| Data | IDs and minimal context only — never entities or DTOs |
+
+```kotlin
+data class HolidayCreatedEvent(val holidayId: Long)
+data class OrderCreatedEvent(val orderId: Long)
+data class OrderCancelledEvent(val orderId: Long, val reason: String)
+```
+
+---
+
+## Layer 4: Infrastructure (External Integration)
+
+**Package**: `{projectGroup}.{appname}.infrastructure`
+
+Implements persistence, external API clients, and event listeners. Depends on Domain layer.
+
+### JPA Entity
+
+| Item | Rule |
+|------|------|
+| Location | `infrastructure/persistence/entity/` |
+| Naming | `{Feature}JpaEntity` |
+| Framework | JPA annotations, `BaseTimeEntity` |
+| Relationship | Completely separate from Domain Model |
+
+```kotlin
+@Entity
+@Table(name = "holidays")
+class HolidayJpaEntity(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+    @Column(nullable = false) var holidayDate: LocalDate,
+    @Column(nullable = false, length = 100) var name: String,
+) : BaseTimeEntity()
+```
+
+### Mapper
+
+| Item | Rule |
+|------|------|
+| Location | `infrastructure/persistence/mapper/` |
+| Annotation | `@Component` |
+| Methods | `toDomain(entity): DomainModel`, `toEntity(domain): JpaEntity` |
+
+```kotlin
+@Component
+class HolidayMapper {
+    fun toDomain(entity: HolidayJpaEntity): Holiday =
+        Holiday(id = entity.id, holidayDate = entity.holidayDate, name = entity.name)
+
+    fun toEntity(domain: Holiday): HolidayJpaEntity =
+        HolidayJpaEntity(
+            id = domain.id,
+            holidayDate = domain.holidayDate,
+            name = domain.name,
+        )
+}
+```
+
+### JPA Repository
 
 ```kotlin
 @Repository
-interface HolidayJpaRepository : JpaRepository<Holiday, Long> {
-    @Query("select h from Holiday h where year(h.holidayDate) = :year order by h.holidayDate")
-    fun findByYear(year: Int): List<Holiday>
+interface HolidayJpaRepository : JpaRepository<HolidayJpaEntity, Long> {
+    @Query("select h from HolidayJpaEntity h where year(h.holidayDate) = :year order by h.holidayDate")
+    fun findByYear(year: Int): List<HolidayJpaEntity>
 }
 ```
 
@@ -167,53 +302,73 @@ interface HolidayJpaRepository : JpaRepository<Holiday, Long> {
 
 ```kotlin
 @Repository
-class HolidayQueryRepository : QuerydslRepositorySupport(Holiday::class.java) {
-    fun fetchPageByYear(year: Int, pageable: Pageable): Page<HolidayInfo> =
+class HolidayQueryRepository : QuerydslRepositorySupport(HolidayJpaEntity::class.java) {
+    fun fetchPageByYear(year: Int, pageable: Pageable): Page<HolidayResult> =
         applyPagination(
             pageable,
-            contentQuery = { it.selectFrom(holiday).where(holiday.holidayDate.year().eq(year)).orderBy(holiday.holidayDate.asc()) },
-            countQuery = { it.select(holiday.count()).from(holiday).where(holiday.holidayDate.year().eq(year)) },
-        ).map { HolidayInfo.from(it) }
+            contentQuery = { it.selectFrom(holidayJpaEntity).where(holidayJpaEntity.holidayDate.year().eq(year)).orderBy(holidayJpaEntity.holidayDate.asc()) },
+            countQuery = { it.select(holidayJpaEntity.count()).from(holidayJpaEntity).where(holidayJpaEntity.holidayDate.year().eq(year)) },
+        ).map { HolidayResult.from(it) }
+}
+```
+
+### Event Listener
+
+```kotlin
+@Component
+class HolidayEventListener(private val slackClient: SlackClient) {
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    fun onHolidayCreated(event: HolidayCreatedEvent) {
+        try {
+            slackClient.notify("Holiday created: ${event.holidayId}")
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to handle HolidayCreatedEvent" }
+        }
+    }
 }
 ```
 
 ---
 
-## Domain Entity & DTO
+## Domain Model & Infrastructure Entity
 
-### Entity
+### Separation Principle
 
-Rules: extends `BaseTimeEntity`, mutable fields use `private set`, mutations via `update()`, factory via `companion object { fun create(...) }`, **Entity must NOT import DTO**.
+Domain Model and JPA Entity are **completely separate classes**. Domain Model is a pure Kotlin class with no framework annotations. JPA Entity is an infrastructure concern annotated with JPA/Hibernate.
 
-```kotlin
-@Entity
-@Table(name = "holidays")
-class Holiday(holidayDate: LocalDate, name: String, id: Long? = null) : BaseTimeEntity() {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = id
-    @Column(nullable = false) var holidayDate: LocalDate = holidayDate; private set
-    @Column(nullable = false, length = 100) var name: String = name; private set
+| Aspect | Domain Model | JPA Entity |
+|--------|-------------|-----------|
+| Package | `domain/model/{feature}/` | `infrastructure/persistence/entity/` |
+| Annotations | None (pure Kotlin) | `@Entity`, `@Table`, `@Column` |
+| Purpose | Business logic, invariants | ORM mapping, persistence |
+| Naming | `{Feature}` (e.g. `Holiday`) | `{Feature}JpaEntity` (e.g. `HolidayJpaEntity`) |
+| Mutability | Immutable or controlled via business methods | Mutable for JPA dirty checking |
 
-    fun update(holidayDate: LocalDate, name: String) { this.holidayDate = holidayDate; this.name = name }
-    companion object { fun create(holidayDate: LocalDate, name: String) = Holiday(holidayDate, name) }
-}
-```
+### Mapper Pattern
 
-### Domain DTOs
-
-> Entity must not import DTO classes. Use `{Feature}Info.from(entity)` pattern — never `entity.toInfo()`.
+All conversion between Domain Model and JPA Entity happens through `{Feature}Mapper` in `infrastructure/persistence/mapper/`.
 
 ```kotlin
-data class HolidayInfo(val id: Long, val holidayDate: LocalDate, val name: String) {
-    companion object {
-        fun from(entity: Holiday) = HolidayInfo(entity.id!!, entity.holidayDate, entity.name)
-    }
+@Component
+class OrderMapper {
+    fun toDomain(entity: OrderJpaEntity): Order =
+        Order(
+            id = entity.id,
+            userId = entity.userId,
+            status = entity.status,
+            totalAmount = Money(entity.totalAmount, entity.currency),
+        )
+
+    fun toEntity(domain: Order): OrderJpaEntity =
+        OrderJpaEntity(
+            id = domain.id,
+            userId = domain.userId,
+            status = domain.status,
+            totalAmount = domain.totalAmount.amount,
+            currency = domain.totalAmount.currency,
+        )
 }
-
-data class CreateHolidayRequest(val holidayDate: LocalDate, val name: String)
-data class UpdateHolidayRequest(val holidayDate: LocalDate, val name: String)
-
-class HolidayNotFoundException(id: Long) : KnownException("Holiday not found: $id")
 ```
 
 ---
@@ -221,85 +376,92 @@ class HolidayNotFoundException(id: Long) : KnownException("Holiday not found: $i
 ## DTO Flow
 
 ```
-[HTTP Request JSON] → CreateHolidayApiRequest (Bootstrap) → CreateHolidayRequest (Domain)
-  → Holiday Entity → HolidayInfo.from(entity) → HolidayDto (Bootstrap) → [HTTP Response JSON]
+[HTTP Request JSON] → CreateHolidayRequest (Presentation) → CreateHolidayCommand (Application)
+  → Holiday Domain Model → HolidayResult (Application) → HolidayResponse (Presentation) → [HTTP Response JSON]
 ```
 
 | Step | From | To | Where |
 |------|------|----|-------|
-| HTTP in | JSON body | `{Feature}ApiRequest` (Bootstrap) | Spring deserialization |
-| Bootstrap → Domain | `{Feature}ApiRequest` | `{Feature}Request` (Domain) | Controller or Facade |
-| Domain write | `{Feature}Request` | `{Feature}` Entity | Service (`Entity.create()`) |
-| Domain read | `{Feature}` Entity | `{Feature}Info` (Domain) | Service (`Info.from(entity)`) |
-| Domain → Bootstrap | `{Feature}Info` | `{Feature}Dto` (Bootstrap) | Facade (`Dto.from(info)`) |
-| HTTP out | `{Feature}Dto` | JSON body | `ApiResource.success()` |
+| HTTP in | JSON body | `{Feature}Request` (Presentation) | Spring deserialization |
+| Presentation → Application | `{Feature}Request` | `{Feature}Command` (Application) | Controller (`request.toCommand()`) |
+| Application → Domain | `{Feature}Command` | `{Feature}` Domain Model | Application Service (`Model.create()`) |
+| Domain → Application | `{Feature}` Domain Model | `{Feature}Result` (Application) | Application Service (`Result.from(model)`) |
+| Application → Presentation | `{Feature}Result` | `{Feature}Response` (Presentation) | Controller (`Response.from(result)`) |
+| HTTP out | `{Feature}Response` | JSON body | `ApiResource.success()` |
 
 ---
 
 ## Dependency Direction Rule
 
-`Controller → Facade → Application → Service → Repository` — each layer injects **only the layer immediately below**.
+`Controller → UseCase → Application Service → Repository` — each layer injects **only the layer immediately below or the Domain layer**.
 
 | Layer | Injects | Prohibited |
 |-------|---------|------------|
-| Controller | Facade only | Service, Application, Repository |
-| Facade | Application only | Service, Repository |
-| Application | Service only | Repository, other Application |
-| Service | Repository | (other Services OK within same domain) |
+| Controller | UseCase only | Service, Repository, Infrastructure |
+| UseCase | Application Service, Domain Policy, Domain Service, EventPublisher | Repository, other UseCase |
+| Application Service | Repository, Mapper | other Application Service |
+| Domain Policy / Service | (other Domain components OK) | Repository, Infrastructure |
 
 | Layer | Transaction | DataSource |
 |-------|-------------|------------|
-| Controller / Facade | None | - |
-| QueryApplication | `@Transactional(readOnly = true)` | Slave (Reader) |
-| CommandApplication | `@Transactional` | Master (Writer) |
-| Service | None (propagated from Application) | - |
+| Controller | None | - |
+| UseCase (read) | `@Transactional(readOnly = true)` | Slave (Reader) |
+| UseCase (write) | `@Transactional` | Master (Writer) |
+| Application Service | None (propagated from UseCase) | - |
 
 ---
 
 ## Cross-Domain Orchestration
 
-### Approach 1: Facade → Multiple Applications (Separate Transactions)
-
-```kotlin
-@Component
-class BookingFacade(
-    private val bookingCommandApplication: BookingCommandApplication,
-    private val paymentQueryApplication: PaymentQueryApplication,
-    private val userQueryApplication: UserQueryApplication,
-) {
-    fun createBooking(request: CreateBookingApiRequest): BookingDto {
-        val user    = userQueryApplication.findById(request.userId)           // TX 1 (readOnly)
-        val payment = paymentQueryApplication.findById(request.paymentId)     // TX 2 (readOnly)
-        val booking = bookingCommandApplication.create(                        // TX 3 (write)
-            CreateBookingRequest(user.id, payment.id, request.scheduleId))
-        return BookingDto.from(booking)
-    }
-}
-```
-
-### Approach 2: Cross-Domain Application (Single Transaction)
+### Approach 1: UseCase → Multiple Application Services (Single Transaction)
 
 ```kotlin
 @Service
 @Transactional
-class BookingCommandApplication(
+class CreateBookingUseCase(
     private val bookingService: BookingService,
     private val paymentService: PaymentService,
     private val inventoryService: InventoryService,
 ) {
-    fun create(request: CreateBookingRequest): BookingInfo {
-        val booking = bookingService.create(request)
-        paymentService.reserve(booking.id, request.paymentId)
-        inventoryService.decrease(booking.scheduleId)
+    operator fun invoke(command: CreateBookingCommand): BookingResult {
+        val booking = bookingService.create(command)
+        paymentService.reserve(booking.id, command.paymentId)
+        inventoryService.decrease(command.scheduleId)
         return booking
+    }
+}
+```
+
+### Approach 2: UseCase → Event → Listener (Eventual Consistency)
+
+```kotlin
+@Service
+@Transactional
+class CreateOrderUseCase(
+    private val orderService: OrderService,
+    private val applicationEventPublisher: ApplicationEventPublisher,
+) {
+    operator fun invoke(command: CreateOrderCommand): OrderResult {
+        val order = orderService.create(command)
+        applicationEventPublisher.publishEvent(OrderCreatedEvent(order.id))
+        return order
+    }
+}
+
+@Component
+class OrderCreatedEventListener(private val inventoryService: InventoryService) {
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    fun onOrderCreated(event: OrderCreatedEvent) {
+        inventoryService.decreaseStock(event.orderId)
     }
 }
 ```
 
 | Approach | Transaction | Use Case | Risk |
 |----------|-------------|----------|------|
-| Facade → multiple Applications | Separate per call | Independent reads, fire-and-forget | No atomicity guarantee |
-| Application → multiple Services | Single shared transaction | Write operations requiring atomicity | Longer lock hold time |
+| UseCase → multiple Services | Single shared transaction | Write operations requiring atomicity | Longer lock hold time |
+| UseCase → Event → Listener | Eventual consistency | Cross-domain side effects | Requires idempotent handlers |
 
 ---
 
@@ -307,13 +469,15 @@ class BookingCommandApplication(
 
 | # | Anti-Pattern | Problem | Correct Method |
 |---|--------------|---------|----------------|
-| 1 | Controller calls Service directly | Bypasses Facade and Application layers | Controller → Facade → Application → Service |
-| 2 | Controller calls Application directly | Bypasses Facade; no DTO conversion | Controller → Facade → Application |
-| 3 | Facade calls Repository directly | Skips Application and Service layers | Facade → Application → Service → Repository |
-| 4 | Service returns API DTO (`{Feature}Dto`) | Creates upward dependency on Bootstrap | Service returns Domain DTO (`{Feature}Info`) only |
-| 5 | Return Entity as API response | Exposes internal structure; no contract | Entity → Info → Dto conversion chain |
-| 6 | Business logic in Application | Role confusion; Application is delegation only | Business logic belongs in Service |
-| 7 | `@Transactional` on Service | Duplicate transaction management; conflicts | Manage transactions only at Application level |
-| 8 | `entity.toInfo()` method in Entity | Reversed dependency; Entity imports DTO | Use `{Feature}Info.from(entity)` pattern |
-| 9 | Application injecting another Application | Breaks layer rule; nested transaction risk | Inject Services from multiple domains instead |
-| 10 | Facade injecting Service or Repository | Skips intermediate layers | Facade injects Application only |
+| 1 | Controller calls Service directly | Bypasses UseCase orchestration layer | Controller → UseCase → Application Service |
+| 2 | Controller calls Repository directly | Bypasses all business layers | Controller → UseCase → Application Service → Repository |
+| 3 | UseCase calls Repository directly | Bypasses Application Service; mixes orchestration with data access | UseCase → Application Service → Repository |
+| 4 | Application Service returns Response DTO | Creates upward dependency on Presentation | Application Service returns `{Feature}Result` only |
+| 5 | Return JPA Entity as API response | Exposes internal structure; no contract | JpaEntity → Domain Model → Result → Response conversion chain |
+| 6 | Business logic in UseCase | Role confusion; UseCase is orchestration only | Business logic belongs in Domain Policy/Service |
+| 7 | `@Transactional` on Application Service | Duplicate transaction management; conflicts | Manage transactions only at UseCase level |
+| 8 | Domain Model with JPA annotations | Domain polluted with infrastructure concerns | Separate Domain Model (pure Kotlin) and JPA Entity |
+| 9 | UseCase injecting another UseCase | Breaks layer rule; nested transaction risk | Inject Application Services from multiple domains instead |
+| 10 | Controller injecting Service or Repository | Skips UseCase layer | Controller injects UseCase only |
+| 11 | Domain Model importing DTO classes | Reversed dependency | Use `{Feature}Result.from(model)` pattern |
+| 12 | `.toKst()` in Application Service or Domain | Display concern leaks into business layer | KST conversion only in Response DTO |
