@@ -10,7 +10,7 @@
 |-------|-------|
 | Entity | `@Entity` → `@Table` → `@Builder` → `@AllArgsConstructor` → `@NoArgsConstructor(access = PROTECTED)` → `@Getter` |
 | Controller | `@RestController` → `@RequestMapping` → `@RequiredArgsConstructor` |
-| Service | `@Service` → `@Transactional(readOnly = true)` → `@RequiredArgsConstructor` |
+| UseCase | `@Service` → `@Transactional(readOnly = true)` → `@RequiredArgsConstructor` |
 | Configuration | `@Configuration` → `@Enable*` → `@RequiredArgsConstructor` |
 | DTO | `@Builder` → `@AllArgsConstructor` → `@Getter` → `@ToString` |
 
@@ -93,10 +93,10 @@
 
 ### Event Design
 
-- Use sealed interface/class hierarchy: `{Feature}Event.Created`, `{Feature}Event.Cancelled`
+- Use independent data class per event: `{Feature}{Action}Event` (e.g. `OrderCreatedEvent`, `OrderCancelledEvent`)
 - Include only IDs and minimal context -- never pass entities or DTOs
-- Place in `domain/{feature}/event/` package
-- Listener: `{Feature}EventListener` in `domain/{feature}/listener/`
+- Place in `domain/event/` package
+- Listener: `{Feature}EventListener` in `infrastructure/event/`
 
 ### Transaction Phases
 

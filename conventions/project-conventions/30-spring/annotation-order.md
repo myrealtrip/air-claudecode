@@ -55,21 +55,25 @@ class Order(
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
-class OrderController(private val orderFacade: OrderFacade) {
+class OrderExternalController(
+    private val getOrderUseCase: GetOrderUseCase,
+    private val createOrderUseCase: CreateOrderUseCase,
+    private val cancelOrderUseCase: CancelOrderUseCase,
+) {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER')")
     @Cacheable(cacheNames = [CacheNames.DEFAULT], key = "#id")
-    fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderDto>> =
-        ResponseEntity.ok(ApiResource.success(orderFacade.getOrder(id)))
+    fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>> =
+        ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
 
     @PostMapping
-    fun createOrder(@Valid @RequestBody request: CreateOrderApiRequest): ResponseEntity<ApiResource<OrderDto>> =
-        ResponseEntity.ok(ApiResource.success(orderFacade.createOrder(request)))
+    fun createOrder(@Valid @RequestBody request: CreateOrderRequest): ResponseEntity<ApiResource<OrderResponse>> =
+        ResponseEntity.ok(ApiResource.success(OrderResponse.from(createOrderUseCase(request.toCommand()))))
 
     @DeleteMapping("/{id}")
     fun cancelOrder(@PathVariable id: Long): ResponseEntity<Unit> {
-        orderFacade.cancelOrder(id)
+        cancelOrderUseCase(id)
         return ResponseEntity.noContent().build()
     }
 }
@@ -79,12 +83,12 @@ class OrderController(private val orderFacade: OrderFacade) {
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 class OrderService(private val orderRepository: OrderRepository) {
-    fun findById(id: Long): OrderInfo =
-        OrderInfo.from(orderRepository.findById(id) ?: throw OrderNotFoundException(id))
+    fun findById(id: Long): OrderResult =
+        OrderResult.from(orderRepository.findById(id) ?: throw OrderNotFoundException(id))
 
     @Transactional
     @CacheEvict(cacheNames = [CacheNames.DEFAULT], key = "#id")
-    fun cancelOrder(id: Long): OrderInfo { }
+    fun cancelOrder(id: Long): OrderResult { }
 }
 
 // Repository
@@ -107,14 +111,24 @@ class AsyncConfig(private val asyncProperties: AsyncProperties) {
     }
 }
 
-// Component (Facade)
-@Component
-@RequiredArgsConstructor
-class OrderFacade(
-    private val orderQueryApplication: OrderQueryApplication,
-    private val orderCommandApplication: OrderCommandApplication,
+// UseCase
+@Service
+@Transactional(readOnly = true)
+class GetOrderUseCase(private val orderService: OrderService) {
+    operator fun invoke(id: Long): OrderResult =
+        orderService.findById(id)
+}
+
+@Service
+@Transactional
+class CreateOrderUseCase(
+    private val orderService: OrderService,
+    private val orderLimitPolicy: OrderLimitPolicy,
 ) {
-    fun getOrder(id: Long): OrderDto = OrderDto.from(orderQueryApplication.getOrder(id))
+    operator fun invoke(command: CreateOrderCommand): OrderResult {
+        orderLimitPolicy.validate(command.userId)
+        return orderService.create(command)
+    }
 }
 
 // Event listener
@@ -130,13 +144,13 @@ class OrderEventListener(private val slackClient: SlackClient) {
 @AllArgsConstructor
 @Getter
 @ToString
-data class OrderDto(val id: Long, val status: String, val totalAmount: Long)
+data class OrderResponse(val id: Long, val status: String, val totalAmount: Long)
 
 // Request DTO (validation before Lombok)
 @Builder
 @AllArgsConstructor
 @Getter
-data class CreateOrderApiRequest(
+data class CreateOrderRequest(
     @NotBlank val itemName: String,
     @Min(1) val quantity: Int,
 )
@@ -170,12 +184,12 @@ data class CreateOrderApiRequest(
 - `@PathVariable` / `@RequestParam` need no ordering with each other
 
 ```kotlin
-fun createOrder(@Valid @RequestBody request: CreateOrderApiRequest): ResponseEntity<ApiResource<OrderDto>>
-fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderDto>>
+fun createOrder(@Valid @RequestBody request: CreateOrderRequest): ResponseEntity<ApiResource<OrderResponse>>
+fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>>
 fun listOrders(
     @RequestParam(defaultValue = "0") page: Int,
     @RequestParam(defaultValue = "20") size: Int,
-): ResponseEntity<ApiResource<List<OrderDto>>>
+): ResponseEntity<ApiResource<List<OrderResponse>>>
 ```
 
 ---
