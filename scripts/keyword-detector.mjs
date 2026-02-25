@@ -32,6 +32,7 @@ const SKILL_KEYWORDS = {
     "git-pr-master": ["pr", "pr 만들", "pr 생성", "create pr", "open pr", "merge pr", "pull request", "풀 리퀘스트"],
     "git-issue-master": ["git issue", "github issue", "깃 이슈", "깃헙 이슈", "이슈 만들", "이슈 생성", "create issue", "file issue", "open issue"],
     "jira-master": ["jira", "지라", "티켓 만들", "티켓 생성", "티켓 조회", "티켓 수정", "jira ticket", "jira issue"],
+    "slack-master": ["slack", "슬랙", "슬랙 메시지", "슬랙 채널", "slack message", "slack channel", "send slack", "read slack", "슬랙 보내"],
     "setup": ["setup", "설정", "설치 확인", "configure air", "air-claudecode setup"],
     "code-review": ["code review", "코드 리뷰", "리뷰해", "review this", "pr review", "코드리뷰"],
     "software-engineer": ["implement", "구현", "개발", "add feature", "refactor", "코드 작성", "software engineer"],
