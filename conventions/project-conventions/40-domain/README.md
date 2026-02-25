@@ -61,7 +61,7 @@ Each feature: `domain/{feature}/exception/`
 
 ### Usage Rules
 
-- Throw exceptions in **Service layer only** -- not in Application or Facade
+- Throw exceptions in **Service layer only** -- not in UseCase or Controller
 - Include relevant context (id, date, name) in error messages
 - Use `knownRequired` / `knownRequiredNotNull` for precondition validation
 
@@ -76,7 +76,7 @@ Each feature: `domain/{feature}/exception/`
 | Internal timezone | UTC everywhere (JVM, DB, domain logic) |
 | Controller input | Must be UTC. If KST arrives, convert immediately |
 | Controller output | UTC by default. KST only for display |
-| KST conversion | `.toKst()` only at Facade / Response DTO |
+| KST conversion | `.toKst()` only at Response DTO |
 
 ### JVM Configuration
 
@@ -86,10 +86,10 @@ Set `TimeZone.setDefault(TimeZone.getTimeZone("UTC"))` in every bootstrap `-app`
 
 ```
 Client Request (UTC, or KST → convert to UTC immediately)
-  → Controller/Facade (ensure UTC)
+  → Controller (ensure UTC)
     → Domain (all operations in UTC)
       → Database (stored as UTC)
-        → Facade/Response DTO (.toKst() only if display requires)
+        → Response DTO (.toKst() only if display requires)
 ```
 
 ### Conversion Extensions
@@ -101,5 +101,5 @@ Client Request (UTC, or KST → convert to UTC immediately)
 ### Anti-Patterns
 
 - Missing `TimeZone.setDefault(UTC)` in main() → `now()` returns KST
-- `.toKst()` in Service or Application → domain polluted with display concern
+- `.toKst()` in Domain or UseCase → domain polluted with display concern
 - `String` type for date fields → use `LocalDate`, `LocalDateTime`, `ZonedDateTime`
