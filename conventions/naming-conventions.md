@@ -17,30 +17,33 @@
 
 | Layer | Pattern | Example |
 |-------|---------|---------|
-| Controller | `{Feature}Controller` | `OrderController` |
-| Facade | `{Feature}Facade` | `OrderFacade` |
-| QueryApplication | `{Feature}QueryApplication` | `OrderQueryApplication` |
-| CommandApplication | `{Feature}CommandApplication` | `OrderCommandApplication` |
-| Service | `{Feature}Service` | `OrderService` |
-| JpaRepository | `{Feature}Repository` | `OrderRepository` |
+| External Controller | `{Feature}ExternalController` | `OrderExternalController` |
+| Admin Controller | `{Feature}AdminController` | `OrderAdminController` |
+| UseCase | `{Action}{Feature}UseCase` | `CreateOrderUseCase` |
+| Application Service | `{Feature}Service` | `OrderService` |
+| Domain Policy | `{Feature}{Rule}Policy` | `OrderLimitPolicy` |
+| Domain Service | `{Concept}Service` | `DiscountService` |
+| JPA Entity | `{Feature}JpaEntity` | `OrderJpaEntity` |
+| JPA Repository | `{Feature}JpaRepository` | `OrderJpaRepository` |
 | QueryRepository | `{Feature}QueryRepository` | `OrderQueryRepository` |
+| Mapper | `{Feature}Mapper` | `OrderMapper` |
 
 ## DTOs
 
 | Type | Pattern | Package |
 |------|---------|---------|
-| API Request | `{Action}{Feature}ApiRequest` | `dto/request/` |
-| API Response | `{Feature}Dto` | `dto/response/` |
-| Domain DTO | `{Feature}Info` | domain `dto/` |
-| Domain Request | `Create{Feature}Request` | domain `dto/` |
-| Domain Update | `Update{Feature}Request` | domain `dto/` |
-| Search Condition | `{Feature}SearchCondition` | domain `dto/` |
+| Presentation Request | `{Feature}{Action}Request` | `presentation/{scope}/request/` |
+| Presentation Response | `{Feature}Response` | `presentation/{scope}/response/` |
+| Application Command | `{Action}{Feature}Command` | `application/dto/command/` |
+| Application Result | `{Feature}Result` | `application/dto/result/` |
+| Search Condition | `{Feature}SearchCondition` | `application/dto/command/` |
 
 ## Entity & Domain
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Entity | `{Feature}` (noun) | `Order`, `User`, `Payment` |
+| Domain Model | `{Feature}` (noun) | `Order`, `User`, `Payment` |
+| JPA Entity | `{Feature}JpaEntity` | `OrderJpaEntity`, `UserJpaEntity` |
 | Table name | `snake_case`, plural | `orders`, `users`, `payment_methods` |
 | Column name | `snake_case` | `created_at`, `order_status` |
 | Enum class | `PascalCase` | `OrderStatus`, `PaymentMethod` |
@@ -69,10 +72,10 @@
 
 | Type | Pattern | Example |
 |------|---------|---------|
-| Event class | `{Feature}Event.{Action}` (sealed) | `OrderEvent.Created`, `OrderEvent.Cancelled` |
+| Event class | `{Feature}{Action}Event` | `OrderCreatedEvent`, `OrderCancelledEvent` |
 | Event listener | `{Feature}EventListener` | `OrderEventListener` |
-| Event package | `domain/{feature}/event/` | `domain/order/event/` |
-| Listener package | `domain/{feature}/listener/` | `domain/order/listener/` |
+| Event package | `domain/event/` | `domain/event/` |
+| Listener package | `infrastructure/event/` | `infrastructure/event/` |
 
 ## QueryDSL Methods
 
@@ -115,4 +118,4 @@
 - Hungarian notation: `strName`, `intCount` -- not needed
 - Generic names: `data`, `info`, `manager`, `handler` (without feature prefix)
 - Inconsistent casing: `userId` vs `user_id` in Kotlin code
-- `Impl` suffix: `UserServiceImpl` -- avoid (no interface for single impl)
+- `Impl` suffix: `UserServiceImpl` -- avoid (UseCase and Service are concrete classes, no interface needed)
