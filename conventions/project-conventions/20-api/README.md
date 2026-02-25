@@ -19,9 +19,9 @@
 ## Controller Structure
 
 - **7 lines or fewer** per method -- controllers handle HTTP routing only
-- Inject **Facade only** (or Application for trivially simple pass-through)
+- Inject **UseCase only** — each controller may inject multiple UseCases
 - Use `@Valid @RequestBody` for request DTOs
-- Use `toDomainRequest()` on request DTO for conversion
+- Use `toCommand()` on request DTO for conversion
 - Add `@Validated` when using constraint annotations on parameters
 
 ## Search Endpoints
@@ -34,18 +34,18 @@
 
 ### Package Structure
 
-- Separate into `dto/request/` and `dto/response/` packages
+- Separate Presentation DTOs into `request/` and `response/` packages
+- Separate Application DTOs into `command/` and `result/` packages
 - Do NOT mix request/response DTOs in the same file
-- Do NOT place DTOs inside `api/` package
 
 ### Naming Convention
 
 | Type | Naming | Package |
 |------|--------|---------|
-| API Request | `{Action}{Feature}ApiRequest` | `dto/request/` |
-| API Response | `{Feature}Dto` | `dto/response/` |
-| Domain DTO | `{Feature}Info` | domain `dto/` |
-| Domain Request | `Create{Feature}Request` | domain `dto/` |
+| Presentation Request | `{Action}{Feature}Request` | `presentation/{scope}/request/` |
+| Presentation Response | `{Feature}Response` | `presentation/{scope}/response/` |
+| Application Command | `{Action}{Feature}Command` | `application/dto/command/` |
+| Application Result | `{Feature}Result` | `application/dto/result/` |
 
 ### JsonFormat Use-Site Targets
 
@@ -60,7 +60,7 @@
 ## REST Docs
 
 - Extend **`RestDocsSupport`** base class
-- Mock the **Facade** (not Service)
+- Mock the **UseCase** (not Service)
 - Use **`DocsFieldType`**: `STRING`, `NUMBER`, `BOOLEAN`, `DATE`, `DATETIME`, `ENUM(Class::class)`
 - Use **Field DSL**: `"fieldName" type TYPE means "description"`
 - **Field descriptions in Korean** (project convention)

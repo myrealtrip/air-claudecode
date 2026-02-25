@@ -60,44 +60,48 @@ Always use `@PageableDefault(size = 100)`. Never rely on Spring's default (20).
 ```kotlin
 @RestController
 @RequestMapping("/api/v1/orders")
-class OrderController(
-    private val orderFacade: OrderFacade,
+class OrderExternalController(
+    private val getOrderUseCase: GetOrderUseCase,
+    private val getOrdersUseCase: GetOrdersUseCase,
+    private val createOrderUseCase: CreateOrderUseCase,
+    private val updateOrderUseCase: UpdateOrderUseCase,
+    private val deleteOrderUseCase: DeleteOrderUseCase,
 ) {
 
     @GetMapping("/{id}")
     fun getOrder(
         @PathVariable id: Long,
-    ): ResponseEntity<ApiResource<OrderApiResponse>> {
-        return ResponseEntity.ok(ApiResource.success(orderFacade.getOrder(id)))
+    ): ResponseEntity<ApiResource<OrderResponse>> {
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
     }
 
     @GetMapping
     fun getOrders(
         @PageableDefault(size = 100) pageable: Pageable,
-    ): ResponseEntity<ApiResource<Page<OrderApiResponse>>> {
-        return ResponseEntity.ok(ApiResource.ofPage(orderFacade.getOrders(pageable)))
+    ): ResponseEntity<ApiResource<Page<OrderResponse>>> {
+        return ResponseEntity.ok(ApiResource.ofPage(getOrdersUseCase(pageable).map { OrderResponse.from(it) }))
     }
 
     @PostMapping
     fun createOrder(
-        @Valid @RequestBody request: CreateOrderApiRequest,
-    ): ResponseEntity<ApiResource<OrderApiResponse>> {
-        return ResponseEntity.ok(ApiResource.success(orderFacade.createOrder(request.toDomainRequest())))
+        @Valid @RequestBody request: CreateOrderRequest,
+    ): ResponseEntity<ApiResource<OrderResponse>> {
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(createOrderUseCase(request.toCommand()))))
     }
 
     @PutMapping("/{id}")
     fun updateOrder(
         @PathVariable id: Long,
-        @Valid @RequestBody request: UpdateOrderApiRequest,
-    ): ResponseEntity<ApiResource<OrderApiResponse>> {
-        return ResponseEntity.ok(ApiResource.success(orderFacade.updateOrder(id, request.toDomainRequest())))
+        @Valid @RequestBody request: UpdateOrderRequest,
+    ): ResponseEntity<ApiResource<OrderResponse>> {
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(updateOrderUseCase(id, request.toCommand()))))
     }
 
     @DeleteMapping("/{id}")
     fun deleteOrder(
         @PathVariable id: Long,
     ): ResponseEntity<ApiResource<Unit>> {
-        orderFacade.deleteOrder(id)
+        deleteOrderUseCase(id)
         return ResponseEntity.ok(ApiResource.success())
     }
 }
@@ -107,7 +111,7 @@ class OrderController(
 
 ## Search Endpoints
 
-For 1-2 filter parameters, use `@RequestParam` directly. For 3 or more, encapsulate in a `{Feature}SearchApiRequest` with a `toSearchCondition()` method and bind with `@ModelAttribute`.
+For 1-2 filter parameters, use `@RequestParam` directly. For 3 or more, encapsulate in a `{Feature}SearchRequest` with a `toSearchCondition()` method and bind with `@ModelAttribute`.
 
 ```kotlin
 // Simple: 1-2 params
@@ -116,12 +120,12 @@ fun getOrders(
     @RequestParam(required = false) status: String?,
     @RequestParam(required = false) userId: Long?,
     @PageableDefault(size = 100) pageable: Pageable,
-): ResponseEntity<ApiResource<Page<OrderApiResponse>>> {
-    return ResponseEntity.ok(ApiResource.ofPage(orderFacade.getOrders(status, userId, pageable)))
+): ResponseEntity<ApiResource<Page<OrderResponse>>> {
+    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(status, userId, pageable).map { OrderResponse.from(it) }))
 }
 
-// Complex: 3+ params — use SearchApiRequest + @ModelAttribute
-data class OrderSearchApiRequest(
+// Complex: 3+ params — use SearchRequest + @ModelAttribute
+data class OrderSearchRequest(
     val status: String?,
     val userId: Long?,
     val productName: String?,
@@ -139,10 +143,10 @@ data class OrderSearchApiRequest(
 
 @GetMapping
 fun searchOrders(
-    @ModelAttribute request: OrderSearchApiRequest,
+    @ModelAttribute request: OrderSearchRequest,
     @PageableDefault(size = 100) pageable: Pageable,
-): ResponseEntity<ApiResource<Page<OrderApiResponse>>> {
-    return ResponseEntity.ok(ApiResource.ofPage(orderFacade.searchOrders(request.toSearchCondition(), pageable)))
+): ResponseEntity<ApiResource<Page<OrderResponse>>> {
+    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(request.toSearchCondition(), pageable).map { OrderResponse.from(it) }))
 }
 ```
 
@@ -173,7 +177,7 @@ Each controller method must be **7 lines or fewer**. Controllers handle HTTP rou
 @RestController
 @RequestMapping("/api/v1/orders")
 @Validated
-class OrderController
+class OrderExternalController
 
 // Method level
 @GetMapping("/{id}")
@@ -182,25 +186,24 @@ fun getOrder(...)
 
 // Parameter level
 @PathVariable id: Long
-@Valid @RequestBody request: CreateOrderApiRequest
+@Valid @RequestBody request: CreateOrderRequest
 @PageableDefault(size = 100) pageable: Pageable
 @RequestParam(required = false) status: String?
-@ModelAttribute request: OrderSearchApiRequest
+@ModelAttribute request: OrderSearchRequest
 ```
 
 ### Dependencies
 
-**Standard: Inject Facade.** Controllers depend on Facade as the primary entry point.
+**Standard: Inject UseCase.** Controllers depend on UseCase as the primary entry point.
 
 ```kotlin
-class OrderController(private val orderFacade: OrderFacade)
+class OrderExternalController(
+    private val getOrderUseCase: GetOrderUseCase,
+    private val createOrderUseCase: CreateOrderUseCase,
+)
 ```
 
-**Exception: Application for simple pass-through.** When no orchestration is needed, injecting the Application service directly is acceptable.
-
-```kotlin
-class OrderStatusController(private val orderStatusApplication: OrderStatusApplication)
-```
+Each controller may inject multiple UseCases. Group related UseCases per controller by feature.
 
 ---
 
@@ -212,16 +215,16 @@ All datetime inputs received from clients must be UTC. Never accept KST directly
 
 ```kotlin
 // LocalDateTime (implicit UTC)
-data class CreateOrderApiRequest(
+data class CreateOrderRequest(
     val scheduledAt: LocalDateTime,  // must be UTC
 )
 
-// ZonedDateTime — convert to UTC in toDomainRequest()
-data class CreateOrderApiRequest(
+// ZonedDateTime — convert to UTC in toCommand()
+data class CreateOrderRequest(
     val scheduledAt: ZonedDateTime,
 ) {
-    fun toDomainRequest(): CreateOrderRequest =
-        CreateOrderRequest(
+    fun toCommand(): CreateOrderCommand =
+        CreateOrderCommand(
             scheduledAt = scheduledAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime(),
         )
 }
@@ -229,15 +232,15 @@ data class CreateOrderApiRequest(
 
 ### Output: KST at Response Boundary
 
-Convert to KST only inside the response DTO or Facade, never inside the controller.
+Convert to KST only inside the Response DTO, never inside the controller.
 
 ```kotlin
-data class OrderApiResponse(
+data class OrderResponse(
     val scheduledAtKst: LocalDateTime,
 ) {
     companion object {
-        fun from(order: Order): OrderApiResponse =
-            OrderApiResponse(scheduledAtKst = order.scheduledAt.toKst())
+        fun from(result: OrderResult): OrderResponse =
+            OrderResponse(scheduledAtKst = result.scheduledAt.toKst())
     }
 }
 ```
@@ -247,10 +250,10 @@ data class OrderApiResponse(
 ```kotlin
 // Bad: KST conversion inside controller
 @GetMapping("/{id}")
-fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderApiResponse>> {
-    val order = orderFacade.getOrder(id)
+fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>> {
+    val result = getOrderUseCase(id)
     return ResponseEntity.ok(ApiResource.success(
-        OrderApiResponse(scheduledAtKst = order.scheduledAt.toKst())  // wrong place
+        OrderResponse(scheduledAtKst = result.scheduledAt.toKst())  // wrong place
     ))
 }
 ```
@@ -265,11 +268,11 @@ fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderApiRespons
 | Singular resource name | `/api/v1/order/{id}` | `/api/v1/orders/{id}` |
 | camelCase URL | `/api/v1/orderItems` | `/api/v1/order-items` |
 | Trailing slash | `/api/v1/orders/` | `/api/v1/orders` |
-| Business logic in controller | Inline calculation, DB access | Delegate to Facade |
+| Business logic in controller | Inline calculation, DB access | Delegate to UseCase |
 | No `@Valid` on request body | `@RequestBody request: ...` | `@Valid @RequestBody request: ...` |
 | Default pageable size | `pageable: Pageable` (size=20) | `@PageableDefault(size = 100) pageable: Pageable` |
-| KST conversion in controller | `order.scheduledAt.toKst()` in controller | Convert in response DTO or Facade |
+| KST conversion in controller | `order.scheduledAt.toKst()` in controller | Convert in Response DTO |
 | Accepting KST input | `scheduledAt: LocalDateTime` (KST) | Always accept UTC, convert in DTO |
-| Injecting Repository directly | `private val orderRepository: OrderRepository` | Inject Facade or Application |
+| Injecting Repository directly | `private val orderRepository: OrderRepository` | Inject UseCase only |
 | Deep nesting (4+ levels) | `/api/v1/users/{id}/orders/{id}/items/{id}/details` | Flatten to `/api/v1/order-items/{id}` |
-| Using `in` for search params (3+) | `@RequestParam` x5 | `@ModelAttribute OrderSearchApiRequest` |
+| Using `in` for search params (3+) | `@RequestParam` x5 | `@ModelAttribute OrderSearchRequest` |

@@ -3,7 +3,7 @@
 ## Core Rules
 
 - Extend **`RestDocsSupport`** base class
-- Mock the **Facade** (not Service)
+- Mock the **UseCase** (not Service)
 - Use **`DocsFieldType`**: `STRING`, `NUMBER`, `BOOLEAN`, `DATE`, `DATETIME`, `ENUM(Class::class)`
 - Use **Field DSL**: `"fieldName" type TYPE means "description"`
 - Optional fields: `isOptional true`; examples: `example "value"`
@@ -25,12 +25,12 @@ abstract class RestDocsSupport {
 
 // Usage
 class OrderDocsTest : RestDocsSupport() {
-    private val orderFacade: OrderFacade = mockk()
-    override fun initController(): Any = OrderController(orderFacade)
+    private val getOrderUseCase: GetOrderUseCase = mockk()
+    override fun initController(): Any = OrderExternalController(getOrderUseCase)
 
     @Test
     fun `get order by id`() {
-        every { orderFacade.getOrder(any()) } returns OrderDto(id = 1L, ...)
+        every { getOrderUseCase(any()) } returns OrderResult(id = 1L, ...)
         mockMvc.perform(get("/api/v1/orders/{id}", 1L))
             .andExpect(status().isOk)
             .andDo(document("get-order-by-id",
@@ -48,18 +48,18 @@ class OrderDocsTest : RestDocsSupport() {
 
 ---
 
-## Mock Facade (not Service)
+## Mock UseCase (not Service)
 
-Always mock the Facade -- the layer the Controller directly depends on. Mocking a Service that the Controller does not inject results in a null Facade and NPE at runtime.
+Always mock the UseCase -- the layer the Controller directly depends on. Mocking a Service that the Controller does not inject results in a null UseCase and NPE at runtime.
 
 ```kotlin
 // Good
-private val orderFacade: OrderFacade = mockk()
-override fun initController(): Any = OrderController(orderFacade)
+private val getOrderUseCase: GetOrderUseCase = mockk()
+override fun initController(): Any = OrderExternalController(getOrderUseCase)
 
-// Bad -- orderFacade is null, NPE at runtime
+// Bad -- getOrderUseCase is null, NPE at runtime
 private val orderService: OrderService = mockk()
-override fun initController(): Any = OrderController(orderFacade)
+override fun initController(): Any = OrderExternalController(getOrderUseCase)
 ```
 
 ---
@@ -135,12 +135,12 @@ All field descriptions (`means "..."`) **must be written in Korean**.
 
 ```kotlin
 class {Feature}DocsTest : RestDocsSupport() {
-    private val {feature}Facade: {Feature}Facade = mockk()
-    override fun initController(): Any = {Feature}Controller({feature}Facade)
+    private val get{Feature}UseCase: Get{Feature}UseCase = mockk()
+    override fun initController(): Any = {Feature}ExternalController(get{Feature}UseCase)
 
     @Test
     fun `{action} {feature}`() {
-        every { {feature}Facade.{method}(any()) } returns {stub}
+        every { get{Feature}UseCase(any()) } returns {stub}
         mockMvc.perform(get("/api/v1/{features}/{id}", 1L))
             .andExpect(status().isOk)
             .andDo(document("{action}-{feature}",
