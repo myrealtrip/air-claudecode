@@ -78,6 +78,7 @@ Team-specific development conventions in [`conventions/project-conventions/`](co
 - [MCP Atlassian Installation Guide](docs/mcp-atlassian-installation-guide.md)
 - [gogcli Installation Guide](docs/gogcli-installation-guide.md)
 - [Git Flow Setup Guide](docs/git-flow-setup.md)
+- [Prompt Keyword Guide](docs/prompt-keyword-guide.md)
 
 ---
 
