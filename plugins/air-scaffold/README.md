@@ -74,11 +74,11 @@ air-international layer-first 아키텍처 기반:
     └── application.yml
 ```
 
-## Generator-Critique 루프
+## Generator-Evaluator 루프
 
 1. **입력 수집** — 프로젝트명, 베이스 패키지 파싱
 2. **Generate** — conventions 기반 패키지 구조 생성
-3. **Critique** — 검증 체크리스트 대조 (PASS/FAIL)
+3. **Evaluate** — 검증 체크리스트 대조 (PASS/NEEDS_IMPROVEMENT/FAIL)
 4. **사용자 확인** — 생성할 구조 미리보기
 5. **Execute** — 디렉토리, Gradle, Application.kt 생성
 6. **Verify** — 최종 트리 출력 및 개수 확인

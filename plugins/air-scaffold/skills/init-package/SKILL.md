@@ -59,23 +59,51 @@ Task(
     - Excluded packages: {excludedPackages or 'none'}
     - Additional domains: {additionalDomains or 'none'}
 
-    Follow the conventions exactly. Return ONLY a JSON object matching the output format
-    specified in conventions-summary.md. Do not include any markdown or explanation outside the JSON.
+    {context_if_retry}
+
+    Follow the conventions exactly. Include a 'reasoning' field explaining your convention
+    application process and (if retrying) how you addressed each piece of prior feedback.
+    Return ONLY a JSON object matching the output format specified in conventions-summary.md.
+    Do not include any markdown or explanation outside the JSON.
   "
 )
 ```
 
 Where `{plugin_path}` is the absolute path to `plugins/air-scaffold/`.
 
-### 3. Critique (Task → haiku)
+**`{context_if_retry}`** — included only on retry (rounds 2+):
 
-Launch a critic agent to validate the generated structure.
+```
+## Previous Attempt
+
+Below is the complete JSON from your previous attempt:
+
+{previous_attempt_json}
+
+## Evaluator Feedback
+
+The evaluator identified the following issues. Address EVERY item:
+
+{evaluator_feedback}
+
+Issues:
+{evaluator_issues_json}
+
+Regenerate the full JSON, fixing all identified issues while preserving correct parts.
+```
+
+### 3. Evaluate (Task → sonnet)
+
+Launch an evaluator agent to validate the generated structure.
 
 ```
 Task(
   subagent_type: "general-purpose",
-  model: "haiku",
+  model: "sonnet",
   prompt: "
+    You are an evaluator. Your role is to evaluate ONLY — do not attempt to solve, fix,
+    or rewrite the structure. Identify issues precisely and provide actionable feedback.
+
     Read the validation checklist at: {plugin_path}/skills/init-package/references/validation-checklist.md
 
     Validate the following generated structure against every check in the checklist:
@@ -83,29 +111,27 @@ Task(
     {generated_json_from_step_2}
 
     Return ONLY a JSON object matching the output format specified in validation-checklist.md.
-    Be strict -- flag any deviation from the checklist.
+    Be strict — flag any deviation from the checklist.
+    Include a 'feedback' field with a high-level summary and specific guidance for the Generator.
   "
 )
 ```
 
-### 4. Iterate (if FAIL)
+### 4. Iterate (based on Evaluator verdict)
 
-If the Critic returns `FAIL`:
+Branch on the Evaluator's `result` field:
 
-1. Extract `issues[]` from the Critic's response
-2. Re-run Step 2 (Generate) with feedback:
-   ```
-   Previous attempt had these issues:
-   {issues_list}
-
-   Fix all issues and regenerate.
-   ```
-3. Re-run Step 3 (Critique) on the new output
-4. **Maximum 2 rounds** — if still FAIL after 2 rounds, present issues to user and ask how to proceed
+- **PASS** → proceed to Step 5
+- **NEEDS_IMPROVEMENT** → re-run the Generate → Evaluate loop:
+  1. Store the full previous attempt JSON and the Evaluator's `feedback` + `issues[]`
+  2. Re-run Step 2 (Generate) with `{context_if_retry}` populated (previous attempt JSON + evaluator feedback + issues)
+  3. Re-run Step 3 (Evaluate) on the new output
+  4. **Maximum 2 rounds** — if still not PASS after 2 rounds, present issues to user and ask how to proceed
+- **FAIL** → immediately present issues to user and ask how to proceed (do not auto-retry on critical failures)
 
 ### 5. User Confirmation
 
-When Critic returns `PASS`, present the structure to the user:
+When Evaluator returns `PASS`, present the structure to the user:
 
 ```
 AskUserQuestion:
@@ -175,13 +201,14 @@ Display final summary:
 ## References
 
 - [references/conventions-summary.md](references/conventions-summary.md) — Generator prompt: package structure rules and templates
-- [references/validation-checklist.md](references/validation-checklist.md) — Critic prompt: validation checklist
+- [references/validation-checklist.md](references/validation-checklist.md) — Evaluator prompt: validation checklist
+- [references/test-reference.md](references/test-reference.md) — Dry-run test cases for verifying Generator-Evaluator loop
 
 ## Final Checklist
 
 - [ ] Project name and base package collected
 - [ ] Generator produced valid JSON structure
-- [ ] Critic validated with PASS
+- [ ] Evaluator validated with PASS
 - [ ] User confirmed the structure
 - [ ] All directories created with .gitkeep
 - [ ] build.gradle.kts, settings.gradle.kts written

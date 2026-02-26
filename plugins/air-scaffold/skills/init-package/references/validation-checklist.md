@@ -1,6 +1,8 @@
-# Validation Checklist (Critic Reference)
+# Validation Checklist (Evaluator Reference)
 
-Validate the generated package structure against these rules. Return `PASS` or `FAIL` with specific issues.
+> **Role Boundary**: You are an **evaluator**. Your role is to evaluate ONLY — do not attempt to solve, fix, or rewrite the task. Identify issues precisely and provide actionable feedback, but leave the correction to the Generator.
+
+Validate the generated package structure against these rules. Return `PASS`, `NEEDS_IMPROVEMENT`, or `FAIL` with specific issues and structured feedback.
 
 ## Structure Checks
 
@@ -81,7 +83,8 @@ All must exist directly under `{basePackagePath}/`:
 
 ```json
 {
-  "result": "PASS" | "FAIL",
+  "result": "PASS" | "NEEDS_IMPROVEMENT" | "FAIL",
+  "feedback": "High-level summary of evaluation findings and specific guidance for the Generator to address identified issues. Leave empty string if PASS.",
   "issues": [
     {
       "category": "structure|naming|convention|gradle|application",
@@ -92,5 +95,8 @@ All must exist directly under `{basePackagePath}/`:
 }
 ```
 
-- **PASS**: Zero critical or major issues
-- **FAIL**: Any critical or major issue found
+### Verdict Criteria
+
+- **PASS**: Zero critical or major issues (minor issues are acceptable)
+- **NEEDS_IMPROVEMENT**: One or more major issues exist, but the overall structure preserves the basic framework (all 6 top-level packages present, naming convention mostly followed). The Generator can fix these issues with targeted corrections.
+- **FAIL**: Any critical issue found — top-level packages missing, naming convention fundamentally violated (underscores, uppercase), empty `files` object, or structure is irrecoverably broken. Escalate to user immediately.

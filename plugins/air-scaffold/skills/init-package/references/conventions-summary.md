@@ -129,6 +129,7 @@ Return a JSON object with the following structure:
 
 ```json
 {
+  "reasoning": "Explain your convention application process: which rules you applied, how you resolved any ambiguities, and (if this is a retry) how you addressed each piece of feedback from the previous evaluation.",
   "projectName": "my-service",
   "basePackage": "com.myrealtrip.myservice",
   "basePackagePath": "com/myrealtrip/myservice",
