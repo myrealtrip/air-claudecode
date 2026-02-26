@@ -1,22 +1,22 @@
-# SQL Style Guide
+# SQL 스타일 가이드
 
-> **Key Principle**: Use ANSI SQL, lowercase keywords, leading commas, and right-aligned clauses. Optimize for clarity over brevity.
+> **핵심 원칙**: ANSI SQL을 사용하고, 소문자 키워드, 앞쪽 쉼표(leading commas), 우측 정렬 절(clause)을 적용한다. 간결함보다 명확함을 우선한다.
 
-## General Principles
+## 일반 원칙
 
-- Use **ANSI SQL** as default -- avoid vendor-specific syntax unless necessary
-- Use **lowercase** for all SQL keywords and identifiers
-- Write readable, maintainable queries
-- Optimize for clarity over brevity
+- 기본으로 **ANSI SQL**을 사용한다 — 벤더 특화 구문은 필요한 경우에만
+- 모든 SQL 키워드와 식별자에 **소문자**를 사용한다
+- 읽기 쉽고 유지보수하기 좋은 쿼리를 작성한다
+- 간결함보다 명확함을 우선한다
 
-## Formatting Rules
+## 포맷팅 규칙
 
-### Keyword Alignment
+### 키워드 정렬
 
-- Main clauses (`select`, `from`, `where`, `group by`, `order by`, `limit`) right-aligned
-- `having` left-aligned at column 0
-- `join` indented under `from`; `on` indented under `join`
-- Place commas at the **beginning** of lines (leading commas)
+- 주요 절(`select`, `from`, `where`, `group by`, `order by`, `limit`)은 우측 정렬
+- `having`은 컬럼 0에 좌측 정렬
+- `join`은 `from` 아래에 들여쓰기, `on`은 `join` 아래에 들여쓰기
+- 쉼표는 줄 **앞쪽**에 배치한다 (앞쪽 쉼표)
 
 ```sql
 select u.id
@@ -39,30 +39,30 @@ having count(*) > 1
  limit 10
 ```
 
-Benefits of leading commas: easy to comment out columns, clear visual alignment, simpler version control diffs.
+앞쪽 쉼표의 장점: 컬럼 주석 처리가 쉽고, 시각적 정렬이 명확하며, 버전 관리 diff가 단순해진다.
 
-## Naming Conventions
+## 네이밍 규칙
 
-- **Tables**: `snake_case`, plural nouns (e.g., `users`, `order_items`, `product_categories`)
-- **Columns**: `snake_case`, avoid abbreviations unless widely understood (e.g., `user_id`, `created_at`, `is_active`)
-- **Primary key**: `id` or `{table_name}_id`; **Foreign key**: `{referenced_table}_id`
-- **Do NOT use database `ENUM` type** for code/status columns -- always use `varchar`
-- **Do NOT add foreign key constraints by default** -- only when explicitly requested
+- **테이블**: `snake_case`, 복수 명사 (예: `users`, `order_items`, `product_categories`)
+- **컬럼**: `snake_case`, 널리 알려진 것 외에는 약어 사용 금지 (예: `user_id`, `created_at`, `is_active`)
+- **기본 키**: `id` 또는 `{table_name}_id`, **외래 키**: `{referenced_table}_id`
+- 코드/상태 컬럼에 **데이터베이스 `ENUM` 타입 사용 금지** — 항상 `varchar` 사용
+- **외래 키 제약을 기본으로 추가하지 않는다** — 명시적 요청이 있을 때만
 
-### Code/Status Columns
+### 코드/상태 컬럼
 
-> **IMPORTANT**: Do not use the database `ENUM` type for code or status columns in DDL. Always use `varchar` instead. Database `ENUM` types require schema migrations (ALTER TABLE) to add or remove values, whereas `varchar` columns allow application-level changes without DDL modifications.
+> **중요**: DDL에서 코드나 상태 컬럼에 데이터베이스 `ENUM` 타입을 사용하지 않는다. 항상 `varchar`를 사용한다. 데이터베이스 `ENUM` 타입은 값을 추가하거나 제거할 때 스키마 마이그레이션(ALTER TABLE)이 필요하지만, `varchar` 컬럼은 DDL 수정 없이 애플리케이션 레벨에서 변경할 수 있다.
 
 ```sql
--- Good: varchar for code/status columns
+-- 좋은 예: 코드/상태 컬럼에 varchar 사용
 create table orders (
     id           bigint
-  , status       varchar(20) not null   -- managed by application enum
-  , payment_type varchar(20) not null   -- managed by application enum
+  , status       varchar(20) not null   -- 애플리케이션 enum으로 관리
+  , payment_type varchar(20) not null   -- 애플리케이션 enum으로 관리
   , constraint pk_orders primary key (id)
 );
 
--- Bad: database ENUM type -- requires ALTER TABLE to add new values
+-- 나쁜 예: 데이터베이스 ENUM 타입 — 새 값 추가 시 ALTER TABLE 필요
 create table orders (
     id           bigint
   , status       enum('PENDING', 'PAID', 'SHIPPED') not null
@@ -70,19 +70,19 @@ create table orders (
 );
 ```
 
-### Constraint Naming Conventions
+### 제약 네이밍 규칙
 
-| Type        | Pattern                           | Example        |
-|-------------|-----------------------------------|----------------|
-| Primary Key | `pk_{table_name}`                 | `pk_orders`    |
-| Unique Key  | `uk_{table_name}_01`, `_02`, ...  | `uk_users_01`  |
-| Foreign Key | `fk_{table_name}_01`, `_02`, ...  | `fk_orders_01` |
-| Index       | `idx_{table_name}_01`, `_02`, ... | `idx_orders_01`|
-| Sequence    | `seq_{table_name}_01`, `_02`, ... | `seq_orders_01`|
-| Check       | `ck_{table_name}_01`, `_02`, ...  | `ck_orders_01` |
+| 유형 | 패턴 | 예시 |
+|------|------|------|
+| 기본 키 | `pk_{table_name}` | `pk_orders` |
+| 유니크 키 | `uk_{table_name}_01`, `_02`, ... | `uk_users_01` |
+| 외래 키 | `fk_{table_name}_01`, `_02`, ... | `fk_orders_01` |
+| 인덱스 | `idx_{table_name}_01`, `_02`, ... | `idx_orders_01` |
+| 시퀀스 | `seq_{table_name}_01`, `_02`, ... | `seq_orders_01` |
+| 체크 | `ck_{table_name}_01`, `_02`, ... | `ck_orders_01` |
 
 ```sql
--- Default: No FK constraint, no index
+-- 기본: FK 제약 없음, 인덱스 없음
 create table orders (
     id           bigint
   , user_id      bigint not null
@@ -92,11 +92,11 @@ create table orders (
   , constraint uk_orders_01 unique (user_id, created_at)
 );
 
--- Suggested indexes:
+-- 제안 인덱스:
 -- create index idx_orders_01 on orders(user_id);
 -- create index idx_orders_02 on orders(created_at);
 
--- Only when explicitly requested: With FK constraint
+-- 명시적 요청이 있을 때만: FK 제약 포함
 create table orders (
     id           bigint
   , user_id      bigint not null
@@ -108,16 +108,16 @@ create table orders (
 );
 ```
 
-## Query Best Practices
+## 쿼리 모범 사례
 
-- Avoid `select *` -- always specify column names explicitly
-- Use table aliases for multi-table queries
-- Always use explicit `JOIN` syntax (not implicit comma joins)
-- Prefer `exists` over `in` for subqueries
-- Prefer CTEs over nested subqueries for complex queries
+- `select *` 사용 금지 — 항상 컬럼명을 명시적으로 지정한다
+- 다중 테이블 쿼리에 테이블 별칭을 사용한다
+- 항상 명시적 `JOIN` 구문을 사용한다 (암시적 쉼표 조인 금지)
+- 서브쿼리에서 `in`보다 `exists`를 선호한다
+- 복잡한 쿼리에서 중첩 서브쿼리보다 CTE를 선호한다
 
 ```sql
--- CTE (preferred for complex queries)
+-- CTE (복잡한 쿼리에 선호)
 with active_users as (
     select id
          , name
@@ -167,12 +167,12 @@ delete from orders
    and created_at < current_date - interval '1' year;
 ```
 
-## Performance Best Practices
+## 성능 모범 사례
 
-### Indexing
+### 인덱싱
 
-- **Do NOT create indexes by default** -- only suggest if needed
-- When writing DDL, suggest indexes as comments:
+- **인덱스를 기본으로 생성하지 않는다** — 필요하면 제안만 한다
+- DDL 작성 시 인덱스를 주석으로 제안한다:
 
 ```sql
 create table orders (
@@ -182,15 +182,15 @@ create table orders (
   , constraint pk_orders primary key (id)
 );
 
--- Suggested indexes:
+-- 제안 인덱스:
 -- create index idx_orders_01 on orders(user_id);
 -- create index idx_orders_02 on orders(order_date);
 ```
 
-### EXISTS vs IN
+### EXISTS와 IN
 
 ```sql
--- Good: EXISTS
+-- 좋은 예: EXISTS
 select u.name
   from users u
  where exists (
@@ -200,7 +200,7 @@ select u.name
        and o.status = 'completed'
 )
 
--- Bad: IN with subquery
+-- 나쁜 예: 서브쿼리에 IN
 select u.name
   from users u
  where u.id in (
@@ -210,17 +210,17 @@ select u.name
 )
 ```
 
-### Avoid Functions on Indexed Columns
+### 인덱스 컬럼에 함수 적용 금지
 
-Avoid applying functions to indexed columns in `WHERE` clauses -- this prevents index use:
+인덱스가 걸린 컬럼에 `WHERE` 절에서 함수를 적용하면 인덱스를 사용할 수 없다:
 
 ```sql
--- Bad: function on indexed column prevents index usage
+-- 나쁜 예: 인덱스 컬럼에 함수 적용으로 인덱스 사용 불가
 select id, name
   from users
  where year(created_at) = 2024
 
--- Good: range condition allows index usage
+-- 좋은 예: 범위 조건으로 인덱스 사용 가능
 select id, name
   from users
  where created_at >= '2024-01-01'

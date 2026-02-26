@@ -1,14 +1,14 @@
-# Common Module Reference
+# 공통 모듈 참조
 
-## Value Objects (required)
+## 값 객체 (필수)
 
-Use typed Value Objects instead of primitive types.
+원시 타입 대신 타입이 지정된 값 객체를 사용한다.
 
-| Type | Instead of | Create | Key methods |
-|------|-----------|--------|-------------|
+| 타입 | 대체 대상 | 생성 | 주요 메서드 |
+|------|-----------|------|-------------|
 | `Email` | `String` | `Email.of()`, `.asEmail` | `.masked()`, `.isValid` |
 | `PhoneNumber` | `String` | `PhoneNumber.of()`, `.asPhoneNumber` | `.toE164()`, `.toNational()`, `.isValid`, `.isValidMobile` |
-| `Money` | `BigDecimal`/`Long` | `Money.krw()`, `Money.usd()`, extension | arithmetic operators, `.format()` |
+| `Money` | `BigDecimal`/`Long` | `Money.krw()`, `Money.usd()`, 확장 함수 | 산술 연산자, `.format()` |
 | `Rate` | `Double`/`BigDecimal` | `Rate.ofPercent()`, `.percent`, `.of()` | `.applyTo()`, `.remainderOf()` |
 
 ---
@@ -16,8 +16,8 @@ Use typed Value Objects instead of primitive types.
 ### Email
 
 ```kotlin
-val email = Email.of("user@example.com")   // factory
-val email = "user@example.com".asEmail     // extension
+val email = Email.of("user@example.com")   // 팩토리
+val email = "user@example.com".asEmail     // 확장 함수
 val isValid = Email.isValid("user@example.com")  // true
 val masked = email.masked()                // "us**@example.com"
 ```
@@ -27,11 +27,11 @@ val masked = email.masked()                // "us**@example.com"
 ### Money
 
 ```kotlin
-val price = Money.krw(10_000L)             // factory
-val price = 10_000L.krw                    // extension
+val price = Money.krw(10_000L)             // 팩토리
+val price = 10_000L.krw                    // 확장 함수
 
-val total    = price + fee.toKrw()         // addition
-val doubled  = price * 2                   // scalar multiplication
+val total    = price + fee.toKrw()         // 덧셈
+val doubled  = price * 2                   // 스칼라 곱
 val discount = price * BigDecimal("0.9")
 val formatted = price.format()             // "10,000"
 
@@ -39,20 +39,20 @@ val discountRate = Rate.ofPercent(10)
 val discounted   = price.applyRate(discountRate)  // price * 0.90
 ```
 
-`PhoneNumber` and `Rate` follow the same factory/extension/method pattern as above. See the table for their specific methods.
+`PhoneNumber`과 `Rate`도 위와 같은 팩토리/확장 함수/메서드 패턴을 따른다. 각 타입별 메서드는 위 테이블을 참조한다.
 
 ---
 
-## Exceptions
+## 예외
 
-| Class | Usage | Logging |
-|-------|-------|---------|
-| `KnownException` | Expected errors (validation, not found) | INFO, no stack trace |
-| `BizRuntimeException` | Unrecoverable business errors | ERROR, with stack trace |
-| `BizException` | Recoverable business errors | ERROR |
+| 클래스 | 용도 | 로깅 |
+|--------|------|------|
+| `KnownException` | 예상 가능한 오류 (유효성 검증, 미존재) | INFO, 스택 트레이스 없음 |
+| `BizRuntimeException` | 복구 불가 비즈니스 오류 | ERROR, 스택 트레이스 포함 |
+| `BizException` | 복구 가능 비즈니스 오류 | ERROR |
 
 ```kotlin
-// Feature exception hierarchy (domain/{feature}/exception/)
+// 기능별 예외 계층 (domain/{feature}/exception/)
 open class OrderException(error: OrderError, message: String? = null) :
     KnownException(error, message ?: error.message)
 
@@ -64,7 +64,7 @@ class OrderAlreadyCancelledException(id: Long) : OrderException(
 )
 ```
 
-### Precondition Validation
+### 전제 조건 검증
 
 ```kotlin
 knownRequired(order.status == OrderStatus.PENDING, OrderError.INVALID_STATE) {
@@ -78,17 +78,17 @@ knownNotBlank(request.reason, OrderError.REASON_REQUIRED) { "Reason must not be 
 
 ---
 
-## DateTime Utilities
+## DateTime 유틸리티
 
-| Utility | Methods |
-|---------|---------|
+| 유틸리티 | 메서드 |
+|----------|--------|
 | `DateFormatter` | `.toDate()`, `.toDateTime()`, `.toStr()`, `.toKorean()` |
 | `SearchDates` | `.lastMonth()`, `.lastDays(n)`, `.thisWeek()`, `.of(start, end)` |
 | `LocalDateRange` | `.from(start, end)`, `in`, `.overlaps()`, `.daysBetween()` |
 
 ---
 
-## Extensions
+## 확장 함수
 
 ### String
 
@@ -100,13 +100,13 @@ knownNotBlank(request.reason, OrderError.REASON_REQUIRED) { "Reason must not be 
 
 ---
 
-## Other Utilities
+## 기타 유틸리티
 
-| Utility | Purpose |
-|---------|---------|
-| `stopWatch` | Measure execution time |
-| `runBlockingWithMDC` / `asyncWithMDC` | Coroutine MDC propagation |
-| `AesCipher` | AES encryption/decryption |
+| 유틸리티 | 용도 |
+|----------|------|
+| `stopWatch` | 실행 시간 측정 |
+| `runBlockingWithMDC` / `asyncWithMDC` | 코루틴 MDC 전파 |
+| `AesCipher` | AES 암호화/복호화 |
 
 ```kotlin
 val elapsed = stopWatch { processOrder(order) }
