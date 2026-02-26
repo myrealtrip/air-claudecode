@@ -1,0 +1,8 @@
+{
+  "name": "air-scaffold",
+  "version": "0.1.0",
+  "description": "Project scaffolding plugin for Kotlin/Spring applications",
+  "author": { "name": "Jinhyung Yoo" },
+  "keywords": ["claude-code", "plugin", "scaffold", "kotlin", "spring"],
+  "skills": "./skills/"
+}
