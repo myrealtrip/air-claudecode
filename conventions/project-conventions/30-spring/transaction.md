@@ -1,25 +1,25 @@
-# Transaction Management
+# 트랜잭션 관리
 
-> Keep transactions small and fast. No external I/O. Watch for self-invocation.
+> 트랜잭션은 작고 빠르게 유지한다. 외부 I/O를 포함하지 않는다. 자기 호출(self-invocation)에 주의한다.
 
-## Core Guidelines
+## 핵심 지침
 
-| Rule | Description |
-|------|-------------|
-| **Keep it small** | Only include necessary DB operations in a transaction |
-| **No external I/O** | Never perform HTTP calls, file I/O, or messaging inside transactions |
-| **No self-invocation** | Same-class `@Transactional` method calls bypass proxy -- extract to another service or make caller transactional |
-| **Fail fast** | Validate all inputs before starting a transaction |
-| **Public methods only** | `@Transactional` proxy only works on public methods |
+| 규칙 | 설명 |
+|------|------|
+| **작게 유지** | 트랜잭션 안에 필요한 DB 작업만 포함한다 |
+| **외부 I/O 금지** | 트랜잭션 안에서 HTTP 호출, 파일 I/O, 메시징을 수행하지 않는다 |
+| **자기 호출 금지** | 같은 클래스의 `@Transactional` 메서드 호출은 프록시를 우회한다 — 별도 서비스로 추출하거나 호출자에 트랜잭션을 건다 |
+| **빠른 실패** | 트랜잭션 시작 전에 모든 입력을 검증한다 |
+| **public 메서드만** | `@Transactional` 프록시는 public 메서드에만 동작한다 |
 
-## @Transactional Defaults
+## @Transactional 기본값
 
-| Attribute | Default | Description |
-|-----------|---------|-------------|
-| `propagation` | `REQUIRED` | Join existing transaction or create new one |
-| `isolation` | DB default (`READ_COMMITTED`) | Isolation level for the transaction |
-| `rollbackFor` | `RuntimeException`, `Error` | Checked exceptions do NOT roll back by default |
-| `timeout` | -1 (no timeout) | Set explicitly for long-running operations |
+| 속성 | 기본값 | 설명 |
+|------|--------|------|
+| `propagation` | `REQUIRED` | 기존 트랜잭션에 참여하거나 새로 생성 |
+| `isolation` | DB 기본값 (`READ_COMMITTED`) | 트랜잭션 격리 수준 |
+| `rollbackFor` | `RuntimeException`, `Error` | 체크 예외는 기본적으로 롤백하지 **않는다** |
+| `timeout` | -1 (타임아웃 없음) | 장시간 작업에는 명시적으로 설정한다 |
 
 ```kotlin
 @Transactional
@@ -29,32 +29,32 @@ fun createOrder(command: CreateOrderCommand): OrderId {
 }
 ```
 
-## Propagation Levels
+## 전파 수준
 
-| Level | Behavior | Use Case |
-|-------|----------|----------|
-| `REQUIRED` | Join existing or create new | Default -- most service methods |
-| `REQUIRES_NEW` | Always suspend existing and create new | Audit logs, independent operations |
-| `NESTED` | Create savepoint within existing | Partial rollback within a transaction |
-| `SUPPORTS` | Use existing if present, else non-transactional | Read operations that may or may not need a transaction |
-| `NOT_SUPPORTED` | Always suspend existing, run non-transactional | Non-transactional operations that must not run inside a transaction |
+| 수준 | 동작 | 사용 시점 |
+|------|------|-----------|
+| `REQUIRED` | 기존 트랜잭션에 참여하거나 새로 생성 | 기본값 — 대부분의 서비스 메서드 |
+| `REQUIRES_NEW` | 기존 트랜잭션을 중단하고 항상 새로 생성 | 감사 로그, 독립 작업 |
+| `NESTED` | 기존 트랜잭션 내에 세이브포인트 생성 | 트랜잭션 내 부분 롤백 |
+| `SUPPORTS` | 기존 트랜잭션이 있으면 참여, 없으면 비트랜잭션 | 트랜잭션이 필요할 수도 아닐 수도 있는 읽기 작업 |
+| `NOT_SUPPORTED` | 기존 트랜잭션을 항상 중단하고 비트랜잭션 실행 | 트랜잭션 안에서 실행하면 안 되는 비트랜잭션 작업 |
 
 ```kotlin
-// REQUIRES_NEW: audit log must be saved even if the outer transaction rolls back
+// REQUIRES_NEW: 외부 트랜잭션이 롤백되어도 감사 로그를 저장해야 한다
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 fun saveAuditLog(event: AuditEvent) {
     auditLogRepository.save(AuditLog.from(event))
 }
 ```
 
-## Isolation Levels
+## 격리 수준
 
-| Level | Dirty Read | Non-Repeatable Read | Phantom Read | Use Case |
-|-------|-----------|---------------------|--------------|----------|
-| `READ_UNCOMMITTED` | Possible | Possible | Possible | Rarely used -- allows reading uncommitted data |
-| `READ_COMMITTED` | Prevented | Possible | Possible | Default for most DBs -- good general-purpose choice |
-| `REPEATABLE_READ` | Prevented | Prevented | Possible | Consistent reads within a transaction (MySQL default) |
-| `SERIALIZABLE` | Prevented | Prevented | Prevented | Strictest -- high contention, use sparingly |
+| 수준 | Dirty Read | Non-Repeatable Read | Phantom Read | 사용 시점 |
+|------|-----------|---------------------|--------------|-----------|
+| `READ_UNCOMMITTED` | 발생 가능 | 발생 가능 | 발생 가능 | 거의 사용하지 않음 — 미커밋 데이터 읽기 허용 |
+| `READ_COMMITTED` | 방지 | 발생 가능 | 발생 가능 | 대부분의 DB 기본값 — 범용 선택 |
+| `REPEATABLE_READ` | 방지 | 방지 | 발생 가능 | 트랜잭션 내 일관된 읽기 (MySQL 기본값) |
+| `SERIALIZABLE` | 방지 | 방지 | 방지 | 가장 엄격 — 높은 경합, 신중히 사용 |
 
 ```kotlin
 @Transactional(isolation = Isolation.REPEATABLE_READ)
@@ -65,14 +65,14 @@ fun calculateBalance(accountId: Long): BigDecimal {
 }
 ```
 
-## Read-only Transactions
+## 읽기 전용 트랜잭션
 
-Using `readOnly = true` provides the following benefits:
+`readOnly = true`를 사용하면 다음과 같은 이점이 있다:
 
-- Routes the query to the **Slave (Reader)** data source
-- Allows the DB driver and ORM to apply read optimizations
-- Prevents accidental writes (Hibernate flushes are skipped)
-- Reduces lock contention on the Master DB
+- **Slave (Reader)** 데이터 소스로 라우팅한다
+- DB 드라이버와 ORM이 읽기 최적화를 적용한다
+- 실수로 쓰기를 방지한다 (Hibernate flush를 건너뜀)
+- Master DB의 락 경합을 줄인다
 
 ```kotlin
 @Transactional(readOnly = true)
@@ -83,18 +83,18 @@ fun getOrderDetail(orderId: Long): OrderDetailResponse {
 }
 ```
 
-## Master/Slave DataSource Routing
+## Master/Slave DataSource 라우팅
 
-### Routing Rules
+### 라우팅 규칙
 
-| Condition | DataSource | Description |
-|-----------|-----------|-------------|
-| `@Transactional(readOnly = true)` | **Slave** | Read queries routed to Reader replica |
-| `@Transactional` (default) | **Master** | Write queries routed to Writer |
-| No transaction | **Slave** | Falls back to Slave (with `LazyConnectionDataSourceProxy`) |
-| `REQUIRES_NEW` inside read-only | **Master** | New transaction overrides outer read-only context |
+| 조건 | DataSource | 설명 |
+|------|-----------|------|
+| `@Transactional(readOnly = true)` | **Slave** | 읽기 쿼리를 Reader 레플리카로 라우팅 |
+| `@Transactional` (기본) | **Master** | 쓰기 쿼리를 Writer로 라우팅 |
+| 트랜잭션 없음 | **Slave** | `LazyConnectionDataSourceProxy` 사용 시 Slave로 폴백 |
+| 읽기 전용 내부의 `REQUIRES_NEW` | **Master** | 새 트랜잭션이 외부의 읽기 전용 컨텍스트를 무시 |
 
-### How It Works
+### 동작 방식
 
 ```
 Request
@@ -105,7 +105,7 @@ Request
                     └─ Connection acquired lazily at first actual DB access
 ```
 
-### Code Examples
+### 코드 예시
 
 ```kotlin
 @Service
@@ -131,7 +131,7 @@ class CreateOrderUseCase(
 }
 ```
 
-### Configuration YAML
+### YAML 설정
 
 ```yaml
 spring:
@@ -148,16 +148,16 @@ spring:
       driver-class-name: com.mysql.cj.jdbc.Driver
 ```
 
-### Considerations
+### 고려 사항
 
-| Item | Description |
-|------|-------------|
-| **LazyConnectionDataSourceProxy** | Required -- ensures routing decision is made after `@Transactional` sets `readOnly` flag |
-| **Replication lag** | Slave may lag behind Master; avoid reading immediately after a write without a delay or re-routing to Master |
-| **REQUIRES_NEW inside read-only** | A nested `REQUIRES_NEW` method always routes to Master regardless of outer context |
-| **Non-transactional context** | Without `@Transactional`, routing depends on framework defaults -- always annotate explicitly |
+| 항목 | 설명 |
+|------|------|
+| **LazyConnectionDataSourceProxy** | 필수 — `@Transactional`이 `readOnly` 플래그를 설정한 후 라우팅 결정이 이루어지도록 보장한다 |
+| **복제 지연** | Slave는 Master보다 뒤처질 수 있다. 쓰기 직후 지연이나 Master 재라우팅 없이 읽지 않는다 |
+| **읽기 전용 내부의 REQUIRES_NEW** | 중첩된 `REQUIRES_NEW` 메서드는 외부 컨텍스트와 무관하게 항상 Master로 라우팅한다 |
+| **비트랜잭션 컨텍스트** | `@Transactional` 없이는 라우팅이 프레임워크 기본값에 의존한다 — 항상 명시적으로 어노테이션을 선언한다 |
 
-## Transaction Timeout
+## 트랜잭션 타임아웃
 
 ```kotlin
 @Transactional(timeout = 3)
@@ -166,26 +166,26 @@ fun processLargeDataSet(command: ProcessCommand) {
 }
 ```
 
-Global timeout via YAML: `spring.transaction.default-timeout: 30` (seconds).
+YAML을 통한 전역 타임아웃: `spring.transaction.default-timeout: 30` (초).
 
-## Rollback Rules
+## 롤백 규칙
 
-| Scenario | Behavior |
-|----------|----------|
-| `RuntimeException` (unchecked) | Rollback (default) |
-| `Error` | Rollback (default) |
-| Checked `Exception` | **No rollback** (default) -- add `rollbackFor` if needed |
-| `noRollbackFor` specified | No rollback on matching type |
+| 시나리오 | 동작 |
+|----------|------|
+| `RuntimeException` (비체크) | 롤백 (기본) |
+| `Error` | 롤백 (기본) |
+| 체크 `Exception` | **롤백하지 않음** (기본) — 필요하면 `rollbackFor` 추가 |
+| `noRollbackFor` 지정 | 해당 타입에서 롤백하지 않음 |
 
 ```kotlin
-// Roll back on checked exception
+// 체크 예외에서 롤백
 @Transactional(rollbackFor = [PaymentException::class])
 fun processPayment(command: PaymentCommand) {
     val result = paymentGateway.charge(command)
     paymentRepository.save(Payment.from(result))
 }
 
-// Do not roll back on a known non-critical exception
+// 비핵심 예외에서 롤백하지 않음
 @Transactional(noRollbackFor = [NotificationFailedException::class])
 fun placeOrder(command: PlaceOrderCommand): OrderId {
     val order = orderRepository.save(Order.create(command))
@@ -194,12 +194,12 @@ fun placeOrder(command: PlaceOrderCommand): OrderId {
 }
 ```
 
-## External Calls After Commit
+## 커밋 후 외부 호출
 
-Never make HTTP or messaging calls inside a transaction. Publish a domain event inside the transaction and handle the external call after commit via `@TransactionalEventListener`.
+트랜잭션 안에서 HTTP나 메시징 호출을 하지 않는다. 트랜잭션 안에서 도메인 이벤트를 발행하고 `@TransactionalEventListener`로 커밋 후 외부 호출을 처리한다.
 
 ```kotlin
-// Publish event inside transaction
+// 트랜잭션 안에서 이벤트 발행
 @Transactional
 fun createOrder(command: CreateOrderCommand): OrderId {
     val order = orderRepository.save(Order.create(command))
@@ -207,7 +207,7 @@ fun createOrder(command: CreateOrderCommand): OrderId {
     return order.id
 }
 
-// Handle external call after commit
+// 커밋 후 외부 호출 처리
 @Component
 class OrderCreatedEventListener(private val slackClient: SlackClient) {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -217,18 +217,18 @@ class OrderCreatedEventListener(private val slackClient: SlackClient) {
 }
 ```
 
-## Self-Invocation Problem
+## 자기 호출 문제
 
-`@Transactional` relies on Spring AOP proxies. When a method calls another method on the **same object**, the proxy is bypassed and the annotation has no effect.
+`@Transactional`은 Spring AOP 프록시에 의존한다. 같은 객체의 다른 메서드를 호출하면 프록시를 우회하여 어노테이션이 동작하지 않는다.
 
-**Solution -- extract to a separate `@Component`** (preferred):
+**해결 — 별도 `@Component`로 추출한다** (권장):
 
 ```kotlin
-// Bad: innerTransactionalMethod() called on `this` -- proxy bypassed
+// 나쁜 예: innerTransactionalMethod()가 this로 호출되어 프록시를 우회
 @Service
 class OrderService(private val orderRepository: OrderRepository) {
     fun createOrder(command: CreateOrderCommand) {
-        innerTransactionalMethod(command)  // @Transactional has NO effect
+        innerTransactionalMethod(command)  // @Transactional이 동작하지 않음
     }
 
     @Transactional
@@ -237,7 +237,7 @@ class OrderService(private val orderRepository: OrderRepository) {
     }
 }
 
-// Good: move transactional method to a separate bean
+// 좋은 예: 트랜잭션 메서드를 별도 빈으로 이동
 @Component
 class OrderPersistence(private val orderRepository: OrderRepository) {
     @Transactional
@@ -249,16 +249,16 @@ class OrderPersistence(private val orderRepository: OrderRepository) {
 @Service
 class OrderService(private val orderPersistence: OrderPersistence) {
     fun createOrder(command: CreateOrderCommand) {
-        orderPersistence.save(command)  // Proxy invoked correctly
+        orderPersistence.save(command)  // 프록시가 올바르게 동작
     }
 }
 ```
 
-Alternatively, annotate the outer caller with `@Transactional` so the entire call is wrapped.
+또는 외부 호출자에 `@Transactional`을 선언하여 전체 호출을 감쌀 수도 있다.
 
-## Testing
+## 테스트
 
-Use `@DataJpaTest` for repository-level tests. Each test runs in a transaction that rolls back automatically.
+리포지토리 레벨 테스트에 `@DataJpaTest`를 사용한다. 각 테스트는 트랜잭션 안에서 실행되어 자동으로 롤백된다.
 
 ```kotlin
 @DataJpaTest
