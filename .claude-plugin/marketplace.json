@@ -6,6 +6,9 @@
     "name": "YoungKwang Kim, SungHoon Lee"
   },
   "version": "0.1.7",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
   "plugins": [
     {
       "name": "air-claudecode",
@@ -21,6 +24,22 @@
         "team",
         "code-review",
         "standards"
+      ]
+    },
+    {
+      "name": "air-scaffold",
+      "description": "Project scaffolding plugin for Kotlin/Spring applications",
+      "version": "0.1.0",
+      "author": {
+        "name": "Jinhyung Yoo"
+      },
+      "source": "./plugins/air-scaffold",
+      "category": "scaffolding",
+      "tags": [
+        "scaffold",
+        "kotlin",
+        "spring",
+        "package-structure"
       ]
     }
   ]
