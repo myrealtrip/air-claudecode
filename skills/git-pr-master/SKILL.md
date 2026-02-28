@@ -18,7 +18,7 @@ Routes to the git-pr-master agent for GitHub pull request operations.
 
 ## Capabilities
 - GitHub PR CRUD (create, review, update, merge, close)
-- Pre-fetches labels, milestones, reviewers, assignees, branches from repo
+- Pre-fetches labels, milestones, reviewers, assignees, branches in a single Bash call
 - Always asks for target branch (main, develop, release/*)
 - Auto-detects Jira ticket from branch name and links it
 - Merge pre-check: CI status, review approval, conflicts

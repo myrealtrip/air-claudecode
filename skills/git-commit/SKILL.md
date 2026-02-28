@@ -67,6 +67,7 @@ When user says "auto commit", "자동 커밋", or argument contains `--auto`:
    - Jira: `Refs: PROJ-123` or `Closes: PROJ-123`
    - GitHub: `Closes #42` or `Refs #42`
    - Breaking: `BREAKING CHANGE: description`
+   - AI ratio: `AI-authored: N%` (integer, no decimals) — estimate percentage of code in this commit written by AI. 0% = fully human, 100% = fully AI-generated
 
 5. **Show and confirm** (skip in Auto Mode -- go directly to step 6)
 
@@ -87,6 +88,7 @@ When user says "auto commit", "자동 커밋", or argument contains `--auto`:
 
    Refs: PROJ-456
    Closes #42
+   AI-authored: 85%
    ─────────────────
    ```
 
@@ -114,8 +116,9 @@ Implement automatic token refresh to prevent session
 expiration during active usage.
 
 Refs: PROJ-456
+AI-authored: 90%
 ```
-Why good: Correct type, scope from directory, Jira auto-linked from branch, body explains why.
+Why good: Correct type, scope from directory, Jira auto-linked from branch, body explains why, AI ratio included.
 
 **Bad:**
 Branch: `feature/PROJ-456-jwt-refresh`
@@ -131,4 +134,5 @@ Why bad: No type, no scope, no description, missed Jira reference, didn't sugges
 - [ ] GitHub issue linked in footer if detected
 - [ ] Changed files and full message shown to user before commit (Default Mode)
 - [ ] User explicitly confirmed via AskUserQuestion (Default Mode) or Auto Mode detected
+- [ ] AI-authored percentage included in footer (integer, no decimals)
 - [ ] Multiple concerns flagged for splitting if detected
