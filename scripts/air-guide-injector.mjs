@@ -5,7 +5,7 @@
  * Fires on every prompt to survive context compression and repo switches.
  */
 
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -37,6 +37,16 @@ function isTargetRepo(cwd) {
   return parts.some((part) => TARGET_REPOS.includes(part));
 }
 
+async function isTargetWorkspace(cwd) {
+  if (!cwd) return false;
+  try {
+    const entries = await readdir(cwd);
+    return entries.some((entry) => TARGET_REPOS.includes(entry));
+  } catch {
+    return false;
+  }
+}
+
 async function main() {
   const input = await readStdin();
   let data;
@@ -48,7 +58,7 @@ async function main() {
   }
 
   const cwd = data.cwd || "";
-  if (!isTargetRepo(cwd)) {
+  if (!isTargetRepo(cwd) && !(await isTargetWorkspace(cwd))) {
     console.log(JSON.stringify({ continue: true }));
     return;
   }
