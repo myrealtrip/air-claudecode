@@ -47,3 +47,44 @@ Important rules:
 - For Jira linking -- gracefully skip if Atlassian MCP is unavailable
 - When merging -- always ask merge method (merge / squash / rebase) and branch deletion preference
 - Always confirm before create, update, merge, or close via AskUserQuestion
+- Always show merge direction in AskUserQuestion confirmation: `main ← feature/PROJ-123-desc` (target ← source)
+
+## Create PR — Confirmation Template
+
+Present to user via `AskUserQuestion` before creating:
+
+```
+main ← feature/PROJ-456-jwt-refresh
+
+Title: feat(auth): add JWT refresh token rotation
+
+Commits:
+  a1b2c3d feat(auth): add refresh token rotation logic
+  d4e5f6g test(auth): add refresh token tests
+
+Labels: enhancement
+Reviewers: john-doe
+Jira: PROJ-456
+
+Body:
+─────────────────
+## Summary
+- Add JWT refresh token rotation to prevent session expiration
+
+## Changes
+- [ ] Implement token refresh logic
+- [ ] Add unit tests
+
+## Related
+- Jira: [PROJ-456](https://jira.example.com/browse/PROJ-456)
+
+## Test Plan
+- [ ] Unit tests added/updated
+- [ ] Manual testing completed
+─────────────────
+```
+
+Options:
+- **Create PR** -- proceed
+- **Edit** -- modify title, body, labels, or reviewers
+- **Cancel** -- abort
