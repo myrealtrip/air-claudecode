@@ -1,6 +1,25 @@
 # Air Project Guide — AI Reference Index
 
-> Lookup table for AI agents. Read the matched document before writing code in that domain.
+> **IMPORTANT**: This guide applies to the following repositories. When you are developing in any of these repos, you MUST read the matched guide document from the lookup table below BEFORE writing or modifying code.
+
+## Target Repositories
+
+| Repository | Description |
+|---|---|
+| [air-console](https://github.com/myrealtrip/air-console) | Air console application |
+| [air-insurance](https://github.com/myrealtrip/air-insurance) | Air insurance service |
+| [air-international](https://github.com/myrealtrip/air-international) | Air international flights service |
+| [air-navigator](https://github.com/myrealtrip/air-navigator) | Air navigator service |
+| [air-notification](https://github.com/myrealtrip/air-notification) | Air notification service |
+| [air-pricing](https://github.com/myrealtrip/air-pricing) | Air pricing service |
+| [air-reconciliation](https://github.com/myrealtrip/air-reconciliation) | Air reconciliation service |
+
+## How to Use
+
+1. Identify which domain your task touches (e.g., controller, JPA entity, exception handling)
+2. Find the matching keywords in the lookup table below
+3. Read the referenced guide document **before** writing any code
+4. Follow the patterns and conventions described in the guide
 
 ## Lookup Table
 
