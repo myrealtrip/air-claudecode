@@ -110,26 +110,23 @@ Request
 ```kotlin
 @Service
 @Transactional(readOnly = true)
-class OrderQueryApplication(
-    private val orderRepository: OrderRepository,
+class GetOrderUseCase(
+    private val orderService: OrderService,
 ) {
-    fun getOrder(orderId: Long): OrderResponse {
-        val order = orderRepository.findById(orderId)
-            ?: throw OrderNotFoundException(orderId)
-        return OrderResponse.from(order)
+    operator fun invoke(orderId: Long): OrderResult {
+        return orderService.findById(orderId)
     }
 }
 
 @Service
 @Transactional
-class OrderCommandApplication(
-    private val orderRepository: OrderRepository,
-    private val inventoryService: InventoryService,
+class CreateOrderUseCase(
+    private val orderService: OrderService,
+    private val orderLimitPolicy: OrderLimitPolicy,
 ) {
-    fun createOrder(command: CreateOrderCommand): OrderId {
-        inventoryService.reserve(command.itemId, command.quantity)
-        val order = Order.create(command)
-        return orderRepository.save(order).id
+    operator fun invoke(command: CreateOrderCommand): OrderResult {
+        orderLimitPolicy.validate(command.userId)
+        return orderService.create(command)
     }
 }
 ```

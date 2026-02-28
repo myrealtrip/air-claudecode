@@ -2,15 +2,15 @@
 
 ## Never Return Entities
 
-Never return JPA entities as API responses -- always convert to a response DTO. Conversion flow: `Entity → {Feature}Info (domain) → {Feature}Dto (API response)`.
+Never return JPA entities as API responses -- always convert to a response DTO. Conversion flow: `JPA Entity → Domain Model → {Feature}Result (Application) → {Feature}Response (Presentation)`.
 
 ```kotlin
 // Bad: exposes JPA entity directly
-fun getOrder(@PathVariable id: Long): Order = orderFacade.getOrderEntity(id)
+fun getOrder(@PathVariable id: Long): OrderJpaEntity = orderService.getOrderEntity(id)
 
-// Good: entity -> domain DTO -> API response DTO
-fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderDto>> =
-    ResponseEntity.ok(ApiResource.success(orderFacade.getOrder(id)))
+// Good: JPA entity -> domain model -> result -> response
+fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>> =
+    ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
 ```
 
 ---
@@ -19,23 +19,28 @@ fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderDto>> =
 
 ```
 {appname}/
-├── api/
-│   └── OrderController.kt
-├── facade/
-│   └── OrderFacade.kt
-├── dto/
-│   ├── request/
-│   │   ├── CreateOrderApiRequest.kt
-│   │   └── UpdateOrderApiRequest.kt
-│   └── response/
-│       └── OrderDto.kt
-└── config/
-    └── ...
+├── presentation/
+│   ├── external/
+│   │   ├── OrderExternalController.kt
+│   │   ├── request/
+│   │   │   ├── CreateOrderRequest.kt
+│   │   │   └── UpdateOrderRequest.kt
+│   │   └── response/
+│   │       └── OrderResponse.kt
+│   └── internal/
+│       └── admin/
+│           └── OrderAdminController.kt
+└── application/
+    └── dto/
+        ├── command/
+        │   └── CreateOrderCommand.kt
+        └── result/
+            └── OrderResult.kt
 ```
 
-- Separate into `dto/request/` and `dto/response/` packages
+- Separate Presentation DTOs into `request/` and `response/` packages
+- Separate Application DTOs into `command/` and `result/` packages
 - Do NOT mix request/response DTOs in the same file
-- Do NOT place DTOs inside the `api/` package
 
 ---
 
@@ -43,34 +48,34 @@ fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderDto>> =
 
 | Type | Naming | Package |
 |------|--------|---------|
-| API Request | `{Action}{Feature}ApiRequest` | `dto/request/` |
-| API Response | `{Feature}Dto` | `dto/response/` |
-| Domain DTO | `{Feature}Info` | domain `dto/` |
-| Domain Request | `Create{Feature}Request` | domain `dto/` |
+| Presentation Request | `{Action}{Feature}Request` | `presentation/{scope}/request/` |
+| Presentation Response | `{Feature}Response` | `presentation/{scope}/response/` |
+| Application Command | `{Action}{Feature}Command` | `application/dto/command/` |
+| Application Result | `{Feature}Result` | `application/dto/result/` |
 
 ---
 
 ## DTO Examples
 
 ```kotlin
-// Request DTO
-data class CreateOrderApiRequest(
+// Presentation Request DTO
+data class CreateOrderRequest(
     @NotBlank val itemName: String,
     @Min(1) val quantity: Int,
     @param:JsonFormat(pattern = "yyyy-MM-dd") val desiredDate: LocalDate,
 ) {
-    fun toDomainRequest(): CreateOrderRequest = CreateOrderRequest(itemName, quantity, desiredDate)
+    fun toCommand(): CreateOrderCommand = CreateOrderCommand(itemName, quantity, desiredDate)
 }
 
-// Response DTO
-data class OrderDto(
+// Presentation Response DTO
+data class OrderResponse(
     val id: Long,
     val itemName: String,
     val status: String,
     @get:JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") val createdAt: LocalDateTime,
 ) {
     companion object {
-        fun from(info: OrderInfo): OrderDto = OrderDto(info.id, info.itemName, info.status.code, info.createdAt)
+        fun from(result: OrderResult): OrderResponse = OrderResponse(result.id, result.itemName, result.status.code, result.createdAt)
     }
 }
 ```

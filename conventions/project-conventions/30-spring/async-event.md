@@ -98,16 +98,15 @@ External I/O (email, Slack, HTTP, etc.)
 
 ```kotlin
 @Service
-class OrderService(
-    private val orderRepository: OrderRepository,
+@Transactional
+class CreateOrderUseCase(
+    private val orderService: OrderService,
     private val applicationEventPublisher: ApplicationEventPublisher,
 ) {
-
-    @Transactional
-    fun createOrder(request: CreateOrderRequest): OrderInfo {
-        val order = orderRepository.save(Order.create(request))
-        applicationEventPublisher.publishEvent(OrderEvent.Created(order.id))
-        return OrderInfo.from(order)
+    operator fun invoke(command: CreateOrderCommand): OrderResult {
+        val result = orderService.create(command)
+        applicationEventPublisher.publishEvent(OrderCreatedEvent(result.id))
+        return result
     }
 }
 ```
@@ -116,10 +115,10 @@ class OrderService(
 
 | Layer | Allowed | Reason |
 |-------|---------|--------|
-| Service | Yes | Owns the transaction boundary |
-| Application | Yes | Orchestrates use cases across services |
+| UseCase | Yes | Owns the transaction boundary and orchestration |
+| Application Service | Yes | Has transaction context (propagated from UseCase) |
+| Domain Service | No | Pure computation; no access to EventPublisher |
 | Controller | No | HTTP layer must not own domain events |
-| Facade | No | Presentation-level orchestration only |
 
 ---
 
@@ -135,11 +134,11 @@ class OrderEventListener(
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-    fun onOrderCreated(event: OrderEvent.Created) {
+    fun onOrderCreated(event: OrderCreatedEvent) {
         try {
             notificationService.sendOrderConfirmation(event.orderId)
         } catch (e: Exception) {
-            logger.error(e) { "Failed to handle OrderEvent.Created for orderId=${event.orderId}" }
+            logger.error(e) { "Failed to handle OrderCreatedEvent for orderId=${event.orderId}" }
         }
     }
 }
@@ -192,8 +191,8 @@ class OrderEventListener(
 
 | Trigger context | Package |
 |----------------|---------|
-| Domain-owned side effects | `domain/{feature}/listener/` |
-| Infrastructure channel (email, Slack, SMS) | `infrastructure/{channel}/` |
+| Domain-owned side effects | `infrastructure/event/` |
+| Infrastructure channel (email, Slack, SMS) | `infrastructure/event/` |
 
 Group all handlers for a feature in one listener class (e.g. `OrderEventListener`) rather than creating a separate class per event type. This keeps related logic together and makes the listener easy to navigate.
 
@@ -205,25 +204,22 @@ Group all handlers for a feature in one listener class (e.g. `OrderEventListener
 
 | Convention | Detail |
 |-----------|--------|
-| Hierarchy | Sealed interface/class: `{Feature}Event` with nested subtypes |
-| Subtype naming | `{Feature}Event.Created`, `{Feature}Event.Cancelled`, etc. |
+| Structure | Independent `data class` per event (not sealed) |
+| Naming | `{Feature}{Action}Event` (e.g. `OrderCreatedEvent`, `OrderCancelledEvent`) |
 | Data carried | IDs and minimal context only — never entities or full DTOs |
-| Package | `domain/{feature}/event/` |
+| Package | `domain/event/` |
 
-### Correct sealed hierarchy
+### Correct event classes
 
 ```kotlin
-sealed interface OrderEvent {
+data class OrderCreatedEvent(val orderId: Long)
 
-    data class Created(val orderId: Long) : OrderEvent
+data class OrderCancelledEvent(
+    val orderId: Long,
+    val reason: String,
+)
 
-    data class Cancelled(
-        val orderId: Long,
-        val reason: String,
-    ) : OrderEvent
-
-    data class Completed(val orderId: Long) : OrderEvent
-}
+data class OrderCompletedEvent(val orderId: Long)
 ```
 
 ### Incorrect fat event
@@ -256,15 +252,15 @@ Publish an event inside the transaction and let the `AFTER_COMMIT` listener perf
 
 ```kotlin
 @Transactional
-fun createOrder(request: CreateOrderRequest): OrderInfo {
+fun createOrder(request: CreateOrderRequest): OrderResult {
     val order = orderRepository.save(Order.create(request))
-    applicationEventPublisher.publishEvent(OrderEvent.Created(order.id))
-    return OrderInfo.from(order)
+    applicationEventPublisher.publishEvent(OrderCreatedEvent(order.id))
+    return OrderResult.from(order)
 }
 
 @Async
 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-fun onOrderCreated(event: OrderEvent.Created) {
+fun onOrderCreated(event: OrderCreatedEvent) {
     try {
         slackClient.send("#orders", "New order: ${event.orderId}")
     } catch (e: Exception) {
@@ -288,5 +284,5 @@ fun onOrderCreated(event: OrderEvent.Created) {
 | Using `@EventListener` for transactional events | Fires before commit; may act on rolled-back data | Use `@TransactionalEventListener` |
 | One listener class per event type | Fragmented, hard to navigate | Group all handlers for a feature in one listener class |
 | No try-catch in listener | Exception propagates; may disrupt unrelated listeners | Wrap listener body in try-catch with error logging |
-| Publishing events in Controller or Facade | Domain events in the HTTP layer | Publish only from Service or Application layer |
+| Publishing events in Controller | Domain events in the HTTP layer | Publish only from UseCase or Application Service |
 | Relying on `@Async` return value without `CompletableFuture` | Result is always ignored for `Unit` return | Use `CompletableFuture<T>` when the caller needs the result |

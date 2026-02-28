@@ -9,7 +9,7 @@
 | **Internal timezone** | UTC everywhere (JVM, DB, domain logic) |
 | **Controller input** | Must be UTC. If KST arrives, convert to UTC immediately |
 | **Controller output** | UTC by default. Convert to KST only when display requires it |
-| **KST conversion** | Use `.toKst()` extension only at the response boundary (Facade / Response DTO) |
+| **KST conversion** | Use `.toKst()` extension only at the response boundary (Response DTO) |
 | **Utilities** | Use `{projectGroup}.common.utils.datetime` for all datetime operations |
 
 ---
@@ -31,20 +31,21 @@ fun main(args: Array<String>) {
 
 ## Controller Input: Always UTC
 
-All datetime inputs in controllers must be UTC. If a client sends KST, convert to UTC immediately in the Controller or Facade layer before passing it to domain.
+All datetime inputs in controllers must be UTC. If a client sends KST, convert to UTC immediately in the Controller layer before passing it to the application.
 
 ```kotlin
 // UTC input -- pass directly
 @PostMapping("/events")
-fun createEvent(@Valid @RequestBody request: CreateEventApiRequest): ResponseEntity<ApiResource<EventDto>> {
-    return ApiResource.success(eventFacade.create(CreateEventRequest(name = request.name, startAt = request.startAt)))
-}
+fun createEvent(@Valid @RequestBody request: CreateEventRequest): ResponseEntity<ApiResource<EventResponse>> =
+    ResponseEntity.ok(ApiResource.success(EventResponse.from(createEventUseCase(request.toCommand()))))
 
 // KST input -- convert to UTC immediately at the entry point
 @PostMapping("/events")
-fun createEvent(@Valid @RequestBody request: CreateEventApiRequest): ResponseEntity<ApiResource<EventDto>> {
+fun createEvent(@Valid @RequestBody request: CreateEventRequest): ResponseEntity<ApiResource<EventResponse>> {
     val utcStartAt = request.startAt.toUtc()  // convert KST → UTC here
-    return ApiResource.success(eventFacade.create(CreateEventRequest(name = request.name, startAt = utcStartAt)))
+    return ResponseEntity.ok(ApiResource.success(EventResponse.from(
+        createEventUseCase(CreateEventCommand(name = request.name, startAt = utcStartAt))
+    )))
 }
 ```
 
@@ -66,23 +67,27 @@ val utcStartAt = request.startAt.withZoneSameInstant(ZoneOffset.UTC).toLocalDate
 
 Convert to KST only when building the API response DTO. Domain and Service layers must never perform KST conversion.
 
+Convert inside the Response DTO factory (`from()`) using `.toKst()`.
+
 ```kotlin
-// In Facade -- UTC → KST at response boundary
-@Component
-class EventFacade(private val eventQueryApplication: EventQueryApplication) {
-    fun findById(id: Long): EventDto {
-        val event = eventQueryApplication.findById(id)
-        return EventDto(
-            id = event.id,
-            name = event.name,
-            startAt = event.startAt.toKst(),
-            createdAt = event.createdAt.toKst(),
-        )
+// In Response DTO -- UTC → KST at response boundary
+data class EventResponse(
+    val id: Long,
+    val name: String,
+    val startAt: LocalDateTime,
+    val createdAt: LocalDateTime,
+) {
+    companion object {
+        fun from(result: EventResult): EventResponse =
+            EventResponse(
+                id = result.id,
+                name = result.name,
+                startAt = result.startAt.toKst(),
+                createdAt = result.createdAt.toKst(),
+            )
     }
 }
 ```
-
-Alternatively, convert inside the Response DTO factory (`from()`) using `.toKst()`.
 
 ---
 
@@ -92,16 +97,16 @@ Alternatively, convert inside the Response DTO factory (`from()`) using `.toKst(
 [Client Request]
   UTC datetime input (or KST → convert to UTC immediately)
     ↓
-[Controller / Facade]
-  Ensure UTC before passing to domain
+[Controller]
+  Ensure UTC before passing to application
     ↓
-[Domain (Application → Service → Repository)]
+[Application (UseCase → Application Service → Domain Model)]
   All operations in UTC. No KST awareness.
     ↓
 [Database]
   Stored as UTC
     ↓
-[Domain → Facade / Response DTO]
+[Application → Response DTO]
   Convert to KST with .toKst() only if display requires it
     ↓
 [Client Response]
@@ -131,8 +136,8 @@ Alternatively, convert inside the Response DTO factory (`from()`) using `.toKst(
 
 | Method | Direction | Use Case |
 |--------|-----------|----------|
-| `LocalDateTime.toKst()` | UTC → KST | Display in Facade / Response DTO |
-| `ZonedDateTime.toKst()` | UTC → KST | Display in Facade / Response DTO |
+| `LocalDateTime.toKst()` | UTC → KST | Display in Response DTO |
+| `ZonedDateTime.toKst()` | UTC → KST | Display in Response DTO |
 | `LocalDateTime.toUtc()` | KST → UTC | Normalize KST input at controller boundary |
 | `ZonedDateTime.toUtc()` | KST → UTC | Normalize KST input at controller boundary |
 

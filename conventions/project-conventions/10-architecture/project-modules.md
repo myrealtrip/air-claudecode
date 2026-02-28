@@ -7,20 +7,23 @@
 │                        bootstrap                            │
 │   ┌──────────────────────┐  ┌──────────────────────────┐   │
 │   │   {name}-api-app     │  │   {name}-worker-app      │   │
-│   │  Controller, Facade  │  │  Scheduler, EventHandler │   │
+│   │  Controller, Request, │  │  Scheduler, EventHandler │
+│   │  Response             │  │                          │   │
 │   └──────────┬───────────┘  └───────────┬──────────────┘   │
 └──────────────┼──────────────────────────┼───────────────────┘
                │                          │
                ▼                          ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                    infrastructure                            │
-│    JPA Config, Cache, Redis, HTTP Client, Export, Slack      │
+│    JPA Entity, Mapper, Repository, Cache, Redis, HTTP Client, │
+│    Export, Slack                                              │
 └──────────────────────────┬───────────────────────────────────┘
                            │
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                       domain                                 │
-│   Entity, Repository, Service, Application, DTO              │
+│   Domain Model, Policy, Service, Event, UseCase,             │
+│   Application Service, DTO                                    │
 └──────────────────────────┬───────────────────────────────────┘
                            │
                            ▼
@@ -44,10 +47,10 @@ modules/
 ├── common/                # Codes, Exceptions, Values, Utils, Extensions
 ├── common-web/            # Filters, Interceptors, ExceptionHandler, ApiResource
 ├── test-support/          # Test fixtures, REST Docs support
-├── domain/                # Entity, Repository, Service, Application, DTO
-├── infrastructure/        # JPA Config, Cache, Redis, RestClient, Export, Slack
+├── domain/                # Domain Model, Policy, Service, Event, UseCase, Application Service, DTO
+├── infrastructure/        # JPA Entity, Mapper, Repository, Cache, Redis, RestClient, Export, Slack
 ├── bootstrap/
-│   ├── {name}-api-app/    # API server (Controller, Facade)
+│   ├── {name}-api-app/    # API server (Controller, Request, Response)
 │   └── {name}-worker-app/ # Worker server
 └── docs/                  # REST Docs generation
 ```
@@ -82,7 +85,7 @@ Dependency rules -- prohibited directions:
 | `infrastructure` | `bootstrap`, `common-web` |
 | `common-web` | `domain`, `infrastructure`, `bootstrap` |
 
-Within `domain`: DTO depends on Entity. Entity must NOT import DTO.
+Within `domain`: Application DTO depends on Domain Model. Domain Model must NOT import DTO.
 
 ---
 
@@ -126,10 +129,10 @@ class FlightClientConfig {
 
 ### New domain feature
 
-1. Create package `{projectGroup}.domain.{feature}/` with sub-packages: `entity/`, `dto/`, `repository/`, `service/`, `application/`, `exception/`
+1. Create package `{projectGroup}.domain.{feature}/` with sub-packages: `model/`, `policy/`, `service/`, `event/`, `usecase/`, `dto/`, `exception/`
 2. Create `{Feature}Error.kt` (enum implementing `ResponseCode`)
 3. Create `{Feature}Exception.kt` (base + `NotFoundException`, etc.)
-4. Create Entity extending `BaseTimeEntity`, Repository, Service, and Application classes
+4. Create Domain Model, Policy, UseCase, Application Service, and DTO classes
 
 ### New bootstrap app
 
@@ -137,9 +140,9 @@ class FlightClientConfig {
 bootstrap/{name}-api-app/
 ├── src/main/kotlin/{projectGroup}/{appname}/
 │   ├── {AppName}Application.kt      # @SpringBootApplication, TimeZone.setDefault(UTC)
-│   ├── api/{Feature}Controller.kt
-│   ├── facade/{Feature}Facade.kt
-│   ├── dto/request/ and dto/response/
+│   ├── presentation/external/{Feature}ExternalController.kt
+│   ├── presentation/external/request/
+│   ├── presentation/external/response/
 │   └── config/WebConfig.kt
 └── build.gradle.kts                 # bootJar enabled
 ```

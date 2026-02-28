@@ -7,10 +7,10 @@ modules/
 ├── common/                # Codes, Exceptions, Values, Utils, Extensions
 ├── common-web/            # Filters, Interceptors, ExceptionHandler, ApiResource
 ├── test-support/          # Test fixtures, REST Docs support
-├── domain/                # Entity, Repository, Service, Application, DTO
-├── infrastructure/        # JPA Config, Cache, Redis, RestClient, Export, Slack
+├── domain/                # Domain Model, Policy, Service, Event, UseCase, Application Service, DTO
+├── infrastructure/        # JPA Entity, Mapper, Repository, Cache, Redis, RestClient, Export, Slack
 ├── bootstrap/
-│   ├── {name}-api-app/    # API server (Controller, Facade)
+│   ├── {name}-api-app/    # API server (Controller, Request, Response)
 │   └── {name}-worker-app/ # Worker server
 └── docs/                  # REST Docs generation
 ```
@@ -27,62 +27,64 @@ domain → common (only)
 common → nothing
 ```
 
-- Within domain: DTO → Entity (Entity must NOT import DTO)
+- Within domain: Application DTO → Domain Model (Domain Model must NOT import DTO)
 
 ## 4-Layer Structure
 
 ```
-Controller (bootstrap) → Facade (bootstrap)
-  → QueryApplication / CommandApplication (domain)
-    → Service (domain)
-      → JpaRepository / QueryRepository (domain)
+Controller (bootstrap) → UseCase (domain)
+  → Application Service (domain)
+    → Domain Model / Policy / Service (domain)
+      ← JPA Entity / Repository / Mapper (infrastructure)
 ```
 
-Upper layers depend on lower layers only. Reverse dependencies prohibited.
+Upper layers depend on lower layers only. Infrastructure depends on Domain. Reverse dependencies prohibited.
 
 ## Layer Responsibilities
 
 | Layer | Class | Annotation | Injects | Prohibited |
 |-------|-------|------------|---------|------------|
-| Bootstrap | Controller | `@RestController` | Facade only | Service, Application, Repository |
-| Bootstrap | Facade | `@Component` | Application only | Service, Repository |
-| Domain | QueryApplication | `@Service`, `@Transactional(readOnly = true)` | Service only | Repository, other Application |
-| Domain | CommandApplication | `@Service`, `@Transactional` | Service only | Repository, other Application |
-| Domain | Service | `@Service` | Repository | (other Services OK) |
-| Domain | Repository | `@Repository` | - | - |
+| Presentation | Controller | `@RestController` | UseCase only | Service, Repository, Infrastructure |
+| Application | UseCase | `@Service`, `@Transactional` | Application Service, Domain Policy/Service, EventPublisher | Repository, other UseCase |
+| Application | Application Service | `@Service` | Repository, Mapper | other Application Service |
+| Domain | Policy | `@Component` | Domain components only | Repository, Infrastructure |
+| Domain | Domain Service | `@Component` | Domain components only | Repository, Infrastructure |
+| Infrastructure | Repository | `@Repository` | - | - |
+| Infrastructure | Mapper | `@Component` | - | - |
 
 ## Transaction Ownership
 
 | Layer | Transaction |
 |-------|-------------|
-| Controller / Facade | None |
-| QueryApplication | `@Transactional(readOnly = true)` |
-| CommandApplication | `@Transactional` |
-| Service | None (propagated from Application) |
+| Controller | None |
+| UseCase (read) | `@Transactional(readOnly = true)` |
+| UseCase (write) | `@Transactional` |
+| Application Service | None (propagated from UseCase) |
 
 ## DTO Flow
 
 ```
-API Request → Controller converts → Domain Request
-  → Service creates/queries Entity → {Feature}Info.from(entity)
-    → Facade converts → API Response DTO → ApiResource.success()
+API Request → Controller converts → Command (Application)
+  → Application Service creates/queries Domain Model → {Feature}Result (Application)
+    → Controller converts → Response (Presentation) → ApiResource.success()
 ```
 
 ## Cross-Domain Orchestration
 
-- **Facade → multiple Applications**: Separate transactions per call (independent reads)
-- **Application → multiple Services**: Single atomic transaction (write operations)
+- **UseCase → multiple Application Services**: Single atomic transaction (write operations)
+- **UseCase → Event → Listener**: Eventual consistency (cross-domain side effects)
 
 ## Package Convention
 
-- Domain: `{projectGroup}.domain.{feature}/{dto,entity,repository,service,application}/`
-- Bootstrap: `{projectGroup}.{appname}/{api,dto/request,dto/response,facade,config}/`
+- Domain: `{projectGroup}.{appname}/{domain/model,domain/policy,domain/service,domain/event,application/usecase,application/service,application/dto}/`
+- Presentation: `{projectGroup}.{appname}/{presentation/external,presentation/internal}/`
+- Infrastructure: `{projectGroup}.{appname}/{infrastructure/persistence,infrastructure/client,infrastructure/event}/`
 
 ## Anti-Patterns
 
-- Calling Service directly from Controller (bypasses Facade)
-- Returning Entity as API response (expose via Info → Dto)
-- Business logic in Application (belongs in Service)
-- `@Transactional` on Service (manage in Application only)
-- `entity.toInfo()` (reversed dependency -- use `Info.from(entity)`)
-- Application injecting another Application (use Services instead)
+- Calling Service directly from Controller (bypasses UseCase)
+- Returning JPA Entity as API response (expose via Domain Model → Result → Response)
+- Business logic in UseCase (belongs in Domain Policy/Service)
+- `@Transactional` on Application Service (manage in UseCase only)
+- JPA annotations on Domain Model (separate Domain Model and JPA Entity)
+- UseCase injecting another UseCase (use Application Services instead)
