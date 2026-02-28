@@ -1,0 +1,46 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "air-claudecode",
+  "description": "Lightweight skill-sharing plugin for Claude Code teams",
+  "owner": {
+    "name": "YoungKwang Kim, SungHoon Lee"
+  },
+  "version": "0.1.7",
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "air-claudecode",
+      "description": "Share coding standards, review checklists, and workflow skills across your team. Zero dependencies.",
+      "version": "0.1.7",
+      "author": {
+        "name": "YoungKwang Kim, SungHoon Lee"
+      },
+      "source": "./",
+      "category": "productivity",
+      "tags": [
+        "skills",
+        "team",
+        "code-review",
+        "standards"
+      ]
+    },
+    {
+      "name": "air-scaffold",
+      "description": "Project scaffolding plugin for Kotlin/Spring applications",
+      "version": "0.1.0",
+      "author": {
+        "name": "Jinhyung Yoo"
+      },
+      "source": "./plugins/air-scaffold",
+      "category": "scaffolding",
+      "tags": [
+        "scaffold",
+        "kotlin",
+        "spring",
+        "package-structure"
+      ]
+    }
+  ]
+}
