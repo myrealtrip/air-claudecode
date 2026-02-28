@@ -1,45 +1,45 @@
 # air-claudecode
 
-**Lightweight skill-sharing plugin for Claude Code teams. Zero dependencies, zero config.**
+**Claude Code 팀을 위한 경량 스킬 공유 플러그인. 의존성 없음, 설정 없음.**
 
 ---
 
-## Requirements
+## 요구사항
 
-| Tool                                                          | Required            | Description                                                                           |
-|---------------------------------------------------------------|---------------------|---------------------------------------------------------------------------------------|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | Yes                 | Anthropic's official CLI for Claude                                                   |
-| [GitHub CLI (gh)](https://cli.github.com/)                    | Yes                 | GitHub command-line tool ([Installation Guide](docs/gh-installation-guide.md))        |
-| [MCP Atlassian](https://github.com/sooperset/mcp-atlassian)   | For Jira/Confluence | Atlassian MCP server ([Installation Guide](docs/mcp-atlassian-installation-guide.md)) |
-| [gogcli](https://github.com/steipete/gogcli)                 | For Google Calendar  | Google Workspace CLI ([Installation Guide](docs/gogcli-installation-guide.md))        |
+| 도구                                                          | 필수 여부           | 설명                                                                                       |
+|---------------------------------------------------------------|---------------------|---------------------------------------------------------------------------------------------|
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | 필수                | Anthropic 공식 CLI                                                                          |
+| [GitHub CLI (gh)](https://cli.github.com/)                    | 필수                | GitHub 커맨드라인 도구 ([설치 가이드](docs/install-guide/gh-installation-guide.md))          |
+| [MCP Atlassian](https://github.com/sooperset/mcp-atlassian)   | Jira/Confluence 사용 시 | Atlassian MCP 서버 ([설치 가이드](docs/install-guide/mcp-atlassian-installation-guide.md))   |
+| [gogcli](https://github.com/steipete/gogcli)                 | Google Calendar 사용 시  | Google Workspace CLI ([설치 가이드](docs/install-guide/gogcli-installation-guide.md))        |
 
 ---
 
-## Installation
+## 설치
 
-### 1. Add marketplace
+### 1. 마켓플레이스 추가
 
-In Claude Code, run:
+Claude Code에서 실행:
 
 ```
 /plugin marketplace add https://github.com/myrealtrip/air-claudecode
 ```
 
-### 2. Install the plugin
+### 2. 플러그인 설치
 
 ```
 /plugin install air-claudecode
 ```
 
-### 3. Verify installation
+### 3. 설치 확인
 
 ```
 /air-claudecode:setup
 ```
 
-This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP, gogcli) and reports any missing dependencies.
+모든 사전 요구사항(Claude Code, gh CLI, Atlassian MCP, gogcli)을 확인하고 누락된 의존성을 알려준다.
 
-### 4. Start using
+### 4. 사용 시작
 
 ```
 /air-claudecode:git-commit
@@ -48,16 +48,16 @@ This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP, gogcli) and r
 
 ---
 
-## Update
+## 업데이트
 
-### Update to the latest version
+### 최신 버전으로 업데이트
 
 ```
 /plugin marketplace update air-claudecode
 /plugin update air-claudecode
 ```
 
-### Reinstall (if update fails)
+### 재설치 (업데이트 실패 시)
 
 ```
 /plugin uninstall air-claudecode
@@ -66,22 +66,23 @@ This checks all prerequisites (Claude Code, gh CLI, Atlassian MCP, gogcli) and r
 
 ---
 
-## Project Conventions
+## 프로젝트 컨벤션
 
-Team-specific development conventions in [`conventions/project-conventions/`](conventions/project-conventions/).
-
----
-
-## Docs
-
-- [GitHub CLI Installation Guide](docs/gh-installation-guide.md)
-- [MCP Atlassian Installation Guide](docs/mcp-atlassian-installation-guide.md)
-- [gogcli Installation Guide](docs/gogcli-installation-guide.md)
-- [Git Flow Setup Guide](docs/git-flow-setup.md)
+팀 개발 컨벤션은 [`conventions/project-conventions/`](conventions/project-conventions/)에 정리되어 있다.
 
 ---
 
-## Authors
+## 문서
+
+- [동작 원리 & 사용 예시](docs/how-it-works.md)
+- [GitHub CLI 설치 가이드](docs/install-guide/gh-installation-guide.md)
+- [MCP Atlassian 설치 가이드](docs/install-guide/mcp-atlassian-installation-guide.md)
+- [gogcli 설치 가이드](docs/install-guide/gogcli-installation-guide.md)
+- [Git Flow 설정 가이드](docs/install-guide/git-flow-installation-guide.md)
+
+---
+
+## 만든 사람
 
 - **YoungKwang Kim** - [@gykk16](https://github.com/gykk16)
 - **SungHoon Lee** - [@hooniis](https://github.com/hooniis)
