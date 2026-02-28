@@ -81,6 +81,42 @@ val registry = ObservationRegistry.create()  // NEVER do this
 | UseCase → Service | `application/dto/command/` |
 | Service → Repository | Pass domain objects directly |
 
+### DTO File Organization
+
+Multiple DTOs MAY be declared in a single `.kt` file when they share the same domain context.
+
+| Guideline | Example |
+|---|---|
+| Group related DTOs in one file | `CreateOrderCommand`, `UpdateOrderCommand`, `CancelOrderCommand` → `OrderCommands.kt` |
+| File name uses plural form of the DTO type | `OrderCommands.kt`, `OrderResults.kt`, `OrderRequests.kt` |
+| Single DTO keeps singular name | `SearchOrderCommand` → `SearchOrderCommand.kt` |
+| Do NOT mix unrelated domains | `OrderCommand` + `FlightCommand` in one file → **wrong** |
+
+```kotlin
+// application/dto/command/OrderCommands.kt
+data class CreateOrderCommand(
+    val userId: String,
+    val flightNumber: String,
+) {
+    companion object {
+        fun of(request: CreateOrderRequest): CreateOrderCommand =
+            CreateOrderCommand(userId = request.userId, flightNumber = request.flightNumber)
+    }
+}
+
+data class CancelOrderCommand(
+    val orderId: Long,
+    val reason: String,
+) {
+    companion object {
+        fun of(request: CancelOrderRequest): CancelOrderCommand =
+            CancelOrderCommand(orderId = request.orderId, reason = request.reason)
+    }
+}
+```
+
+**When to split**: If a file exceeds ~200 lines or a DTO has complex validation/logic, move it to its own file.
+
 ## Object Conversion Rules
 
 All conversions use `of` factory method in target type's `companion object`. Do NOT use `of*` variants or `to` pattern.

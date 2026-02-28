@@ -83,6 +83,35 @@ data class OrderResponse(
 }
 ```
 
+## Request/Response File Organization
+
+Multiple request or response DTOs MAY be declared in a single `.kt` file when they share the same domain context.
+
+| Guideline | Example |
+|---|---|
+| Group related DTOs in one file | `CreateOrderRequest`, `UpdateOrderRequest`, `CancelOrderRequest` → `OrderRequests.kt` |
+| File name uses plural form of the DTO type | `OrderRequests.kt`, `OrderResponses.kt` |
+| Single DTO keeps singular name | `SearchFlightRequest` → `SearchFlightRequest.kt` |
+| Do NOT mix unrelated domains | `OrderRequest` + `FlightRequest` in one file → **wrong** |
+
+```kotlin
+// presentation/external/request/OrderRequests.kt
+data class CreateOrderRequest(
+    @field:NotBlank(message = "사용자 ID는 필수입니다")
+    val userId: String,
+
+    @field:NotBlank(message = "항공편 번호는 필수입니다")
+    val flightNumber: String,
+)
+
+data class CancelOrderRequest(
+    @field:NotBlank(message = "취소 사유는 필수입니다")
+    val reason: String,
+)
+```
+
+**When to split**: If a file exceeds ~200 lines or a DTO has complex validation, move it to its own file.
+
 ## Error Response Format
 
 `GlobalExceptionHandler` handles all exceptions automatically.
