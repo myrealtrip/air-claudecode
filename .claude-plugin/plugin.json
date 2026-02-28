@@ -1,6 +1,6 @@
 {
   "name": "air-claudecode",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "description": "Lightweight skill-sharing plugin for teams. Zero dependencies, zero config.",
   "author": {
     "name": "YoungKwang Kim, SungHoon Lee"
