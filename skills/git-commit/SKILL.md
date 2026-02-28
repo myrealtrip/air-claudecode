@@ -73,6 +73,8 @@ When user says "auto commit", "자동 커밋", or argument contains `--auto`:
 
    Present to user via `AskUserQuestion`:
    ```
+   Branch: feature/PROJ-456-jwt-refresh
+
    Changed files:
      M  src/auth/login.ts
      A  src/auth/token.ts
