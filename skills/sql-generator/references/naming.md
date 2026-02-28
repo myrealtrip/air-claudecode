@@ -28,17 +28,15 @@ tbl_products
 -- Good
 user_id
 created_at
-is_active_yn      -- boolean: char(1) 'Y'/'N', prefix + _yn suffix
-has_permission_yn  -- boolean: char(1) 'Y'/'N', prefix + _yn suffix
-can_execute_yn     -- boolean: char(1) 'Y'/'N', prefix + _yn suffix
+is_active          -- boolean: bit, optional is_/has_/can_ prefix
+has_permission     -- boolean: bit, optional is_/has_/can_ prefix
+canceled          -- boolean: bit, no prefix when meaning is clear
 total_amount
 
 -- Bad
 userId
 createdAt
 isActive
-is_active          -- missing _yn suffix
-active_yn          -- missing is_/has_/can_ prefix
 tot_amt
 ```
 

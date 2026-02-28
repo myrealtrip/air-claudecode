@@ -76,41 +76,37 @@ create table events (
 );
 ```
 
-### Boolean Columns: `char(1)` with `_yn` Suffix
+### Boolean Columns: `bit` Type
 
-> **Use `char(1)` storing `'Y'`/`'N'` for boolean columns.** Always use `_yn` suffix.
+> **Use `bit` type for boolean columns.** Optionally use `is_`/`has_`/`can_` prefix when it improves clarity.
 
 ```sql
--- Good: is_/has_/can_ prefix + _yn suffix
+-- Good: bit type, prefix optional
 create table users (
     id              bigint
   , name            varchar(50) not null
-  , is_active_yn    char(1) not null default 'Y'
-  , is_deleted_yn   char(1) not null default 'N'
-  , has_agreed_yn   char(1) not null default 'N'
-  , can_login_yn    char(1) not null default 'Y'
+  , is_active       bit not null default 1   -- prefix improves clarity
+  , deleted         bit not null default 0   -- clear without prefix
+  , has_agreed      bit not null default 0   -- prefix improves clarity
+  , canceled       bit not null default 0   -- clear without prefix
   , constraint pk_users primary key (id)
-  , constraint ck_users_01 check (is_active_yn in ('Y', 'N'))
-  , constraint ck_users_02 check (is_deleted_yn in ('Y', 'N'))
-  , constraint ck_users_03 check (has_agreed_yn in ('Y', 'N'))
-  , constraint ck_users_04 check (can_login_yn in ('Y', 'N'))
 );
 
--- Bad: boolean or tinyint types, missing _yn suffix
+-- Bad: char(1) Y/N, boolean, tinyint
 create table users (
     id           bigint
   , is_active    boolean
   , is_deleted   tinyint(1)
-  , active_yn    char(1)         -- missing is_/has_/can_ prefix
+  , active_yn    char(1)         -- wrong type
 );
 ```
 
 Rules:
-- Type: `char(1) not null` with default `'Y'` or `'N'`
-- Values: only `'Y'` or `'N'` (uppercase)
-- Naming: `is_`/`has_`/`can_` prefix + `_yn` suffix (e.g., `is_active_yn`, `has_permission_yn`, `can_execute_yn`)
-- Do NOT use `boolean`, `tinyint`, `number(1)` types
-- Add check constraint to enforce valid values
+- Type: `bit not null` with default `1` (true) or `0` (false)
+- Values: `1` (true) or `0` (false)
+- Naming: optionally use `is_`/`has_`/`can_` prefix when it better represents meaning (e.g., `is_active`, `has_permission`); omit when the column name alone is clear (e.g., `canceled`, `deleted`)
+- Do NOT use `char(1)` with `'Y'`/`'N'`, `boolean`, `tinyint`, `number(1)` types
+- No check constraint needed (`bit` only accepts `0` and `1`)
 
 ### Do NOT Use Enum Types
 

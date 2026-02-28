@@ -107,7 +107,7 @@ update users
 
 ```sql
 delete from orders
- where status = 'cancelled'
+ where status = 'canceled'
    and created_at < current_date - interval '1' year;
 ```
 

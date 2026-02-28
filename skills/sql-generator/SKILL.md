@@ -28,7 +28,7 @@ Generate SQL (DDL, DML) with strict formatting and policy rules. Always confirm 
 
    **DML**: explicit `JOIN`, no `SELECT *`, CTE over subqueries, `exists` over `in`
 
-   **DDL**: `bigint id` PK, audit columns (`created_by`, `created_at`, `modified_by`, `modified_at`), no `enum` (use `varchar`), `char(1)` booleans (`is_`/`has_`/`can_` + `_yn`), no FK/index by default, constraint naming `pk_`/`uk_`/`fk_`/`idx_`/`ck_` + `{table}_01`
+   **DDL**: `bigint id` PK, audit columns (`created_by`, `created_at`, `modified_by`, `modified_at`), no `enum` (use `varchar`), `bit` booleans (optional `is_`/`has_`/`can_` prefix when it improves clarity), no FK/index by default, constraint naming `pk_`/`uk_`/`fk_`/`idx_`/`ck_` + `{table}_01`
 
 3. **Present SQL** with design decisions
 
@@ -42,14 +42,13 @@ create table orders (
   , order_date      date not null
   , total_amount    decimal(10, 2)
   , status          varchar(20) default 'pending'
-  , is_cancelled_yn char(1) not null default 'N'
+  , canceled       bit not null default 0
   , created_by      varchar(50) not null
   , created_at      timestamp not null default current_timestamp
   , modified_by     varchar(50) not null
   , modified_at     timestamp not null default current_timestamp
   , constraint pk_orders primary key (id)
   , constraint uk_orders_01 unique (user_id, order_date)
-  , constraint ck_orders_01 check (is_cancelled_yn in ('Y', 'N'))
 );
 -- create index idx_orders_01 on orders(user_id);
 
@@ -78,6 +77,6 @@ select u.id
 - [ ] Lowercase, leading commas, right-aligned clauses
 - [ ] Explicit JOIN, no `SELECT *`
 - [ ] `bigint id` PK + four audit columns
-- [ ] `varchar` for status (no `enum`), `char(1)` for booleans (`is_`/`has_`/`can_` + `_yn`)
+- [ ] `varchar` for status (no `enum`), `bit` for booleans (optional `is_`/`has_`/`can_` prefix)
 - [ ] No FK/index unless requested (suggest as comments)
 - [ ] Vendor-specific syntax applied
