@@ -147,8 +147,8 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
 - **One file, all classes**: every data class goes in the same file as top-level declarations
 - **No business logic**: no companion objects, factory methods, or extension functions — pure data classes only
 - **No type reuse**: do not import or reference data classes from other files/packages — define everything locally
-- **Nullable by default**: if `minOccurs` is `0` or not specified, make the field nullable
-- **Required fields**: only make fields non-nullable when `minOccurs >= 1`
+- **Nullable fields**: make the field nullable only when `minOccurs` is explicitly `0`
+- **Required fields (default)**: when `minOccurs` is omitted, it defaults to `1` per XSD spec — make the field non-nullable
 - **Section comments**: use `// ─── Section Name ───` comments to organize related classes
 
 ### 5. Validate maxOccurs Accuracy
