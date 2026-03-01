@@ -4,7 +4,7 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:code-review <대상>
 ```
 

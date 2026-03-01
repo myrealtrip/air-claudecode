@@ -4,13 +4,13 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:log-analyzer <쿼리 또는 설명>
 ```
 
 ## 예시
 
-```
+```text
 /air-claudecode:log-analyzer 최근 1시간 ERROR 로그 조회
 /air-claudecode:log-analyzer OOM 관련 로그 분석
 /air-claudecode:log-analyzer --index app-logs-* --from 2h --level ERROR payment 관련 에러

@@ -4,7 +4,7 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:technical-writing Write a guide on setting up Redis caching
 /air-claudecode:technical-writing API 인증 가이드 작성
 ```

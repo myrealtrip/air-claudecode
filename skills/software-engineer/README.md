@@ -4,7 +4,7 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:software-engineer <작업 설명>
 ```
 

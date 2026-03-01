@@ -20,7 +20,7 @@
 
 ## 3단계 시스템
 
-```
+```text
 Phase 1: 분석 (ANALYZE) - 병렬
   Explorer (haiku) + Analyst (opus) + Risk Assessor (sonnet)
   -> 종합 -> 분석 보고서
@@ -60,7 +60,7 @@ Phase 3: 검증 (VALIDATE) - 병렬
 
 사용자 요청을 요약하고 범위를 결정합니다:
 
-```
+```text
 User Request: [사용자가 원하는 것]
 Scope: file | module | project | system
 Estimated Complexity: Low | Medium | High | Critical
@@ -76,7 +76,7 @@ Estimated Complexity: Low | Medium | High | Critical
 
 상세 에이전트 프롬프트는 [references/agent-prompts.md](references/agent-prompts.md)를 참조하세요.
 
-```
+```text
 병렬 실행 (각각 run_in_background: true 사용):
 
 1. Task(subagent_type="oh-my-claudecode:explore",
@@ -102,7 +102,7 @@ Estimated Complexity: Low | Medium | High | Critical
 
 - **Planner** (opus) -- 전체 분석 보고서를 수신하여 구현 전략 수립
 
-```
+```text
 Task(subagent_type="oh-my-claudecode:planner",
      model="opus",
      prompt="[Planner 프롬프트 + 종합된 분석 보고서]")
@@ -124,7 +124,7 @@ Planner 출력이 완료될 때까지 대기합니다.
 
 각 에이전트는 분석 보고서와 구현 전략을 모두 수신합니다.
 
-```
+```text
 병렬 실행 (각각 run_in_background: true 사용):
 
 1. Task(subagent_type="oh-my-claudecode:verifier",

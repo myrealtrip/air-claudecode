@@ -4,7 +4,7 @@ Jira 티켓 작업을 위해 jira-master 에이전트로 라우팅합니다.
 
 ## 사용법
 
-```
+```text
 /air-claudecode:jira-master <jira 작업>
 ```
 

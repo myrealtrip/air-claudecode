@@ -4,7 +4,7 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:sentence-refiner .claudedocs/technical-writing/redis-guide.md
 /air-claudecode:sentence-refiner 이 문서 문장 다듬어줘
 ```

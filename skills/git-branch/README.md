@@ -27,6 +27,7 @@
 2. **브랜치 이름 생성**
 
    접두사 규칙:
+
    | 소스 | 접두사 |
    |------|--------|
    | Bug, Defect 또는 사용자가 "fix"/"bugfix"라고 언급 | `fix/` |
@@ -45,7 +46,7 @@
 3. **사용자에게 확인** (`AskUserQuestion` 사용)
 
    제시 내용:
-   ```
+   ```text
    Jira: PROJ-123 - Add JWT refresh token rotation  (또는 "No Jira ticket")
    Type: Story
 

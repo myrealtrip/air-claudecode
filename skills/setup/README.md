@@ -18,7 +18,7 @@ gh auth status 2>&1
 # gogcli 설치 확인
 which gog && echo "GOG_INSTALLED=true" || echo "GOG_INSTALLED=false"
 ```
-```
+```text
 # Atlassian MCP 사용 가능 확인
 ToolSearch("+atlassian jira")
 

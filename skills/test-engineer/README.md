@@ -4,7 +4,7 @@
 
 ## 사용법
 
-```
+```text
 /air-claudecode:test-engineer <대상 클래스 또는 메서드>
 ```
 
