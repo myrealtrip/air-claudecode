@@ -139,7 +139,8 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
 
 - **Class names**: PascalCase matching the XSD type name, with optional version suffix (e.g., `NumberOfUnit24`)
 - **Field names**: camelCase matching the XSD element name
-- **List field names**: use plural form if the XML element name is singular (e.g., `itinerary` → `itineraries`)
+- **Single field names**: when `maxOccurs` is 1 or omitted (not a List), use singular form if the XML element name is plural (e.g., `errorDetails` → `errorDetail`, `taxInformations` → `taxInformation`)
+- **List field names**: when `maxOccurs > 1` (List), use plural form if the XML element name is singular (e.g., `itinerary` → `itineraries`)
 - **Suffix**: if a suffix is used (e.g., `24`), apply it to ALL classes in the file consistently
 
 #### Structural Rules
