@@ -63,7 +63,7 @@ requireNotNull(user) { "User cannot be null" }         // precondition
 fun doubled(x: Int) = x * 2                           // expression body
 fun create(name: String, role: Role = Role.USER) { }   // default params > overloads
 println("$name has ${items.size} items")               // string templates
-draw(x = 10, y = 10, fill = true)                     // named arguments
+draw(x = 10, y = 10, fill = true)                     // named arguments (use when >1 args)
 
 when (status) {                                        // when for 3+ branches
     Status.ACTIVE -> handle()
