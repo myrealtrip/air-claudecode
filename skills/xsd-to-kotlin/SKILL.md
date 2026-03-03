@@ -137,9 +137,17 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
 
 #### Naming Conventions
 
-- **Class names**: PascalCase matching the XSD type name, with optional version suffix (e.g., `NumberOfUnit24`)
+- **Class names**: PascalCase matching the XSD type name, with optional API version suffix (e.g., `NumberOfUnit24`)
+- **Strip XSD internal version suffixes**: XSD type names often include internal version identifiers following the pattern `_?\d{3,}[A-Z]?` at the end (e.g., `FareFamilyType_80157S`, `ApplicationErrorDetailType48648C`, `AddressDetailsTypeU_198210C`). These suffixes MUST be stripped from the generated Kotlin class name. Examples:
+  - `FareFamilyType_80157S` → `FareFamilyType`
+  - `StatusDetailsTypeI_185722C` → `StatusDetailsTypeI`
+  - `MonetaryInformationType198917S` → `MonetaryInformationType`
+  - Note: trailing letters like `I`, `U` that appear BEFORE the numeric suffix are part of the type name (e.g., `TypeI`, `TypeU`) and must be kept
 - **No root prefix on child classes**: child/supporting class names use the XSD `complexType` name directly — do NOT prefix them with the root element name. For example, if the root element is `FareMasterPricerTravelBoardSearch` and a child type is `NumberOfUnitsType`, the class name is `NumberOfUnitsType` (or `NumberOfUnitsType24` with suffix), NOT `FareMasterPricerTravelBoardSearchNumberOfUnitsType`
-- **Name collision handling**: if two different XSD complex types produce the same Kotlin class name, disambiguate by adding the parent type name as a prefix only to the conflicting types (e.g., `ItineraryAttributeType` vs `SegmentAttributeType`), keeping all non-conflicting types unprefixed
+- **Name collision handling**: after stripping version suffixes, multiple XSD types may produce the same Kotlin class name within a single file. Resolve collisions by prefixing with the **parent class name** (the class that declares a property of that type), only for the conflicting types:
+  - If `StatusType_68675S` is referenced by `FraudScreeningGroupType` and `StatusType_68646S` is referenced by `MopGroup`, rename to `FraudScreeningGroupStatusType` and `MopGroupStatusType`
+  - Non-conflicting types remain unprefixed (e.g., a sole `FareFamilyType_80157S` → `FareFamilyType`)
+  - If a collision still exists after prefixing (e.g., two types used by the same parent), append a numeric disambiguator: `ParentStatusType`, `ParentStatusType2`
 - **Field names**: camelCase matching the XSD element name
 - **Single field names**: when `maxOccurs` is 1 or omitted (not a List), use singular form if the XML element name is plural (e.g., `errorDetails` → `errorDetail`, `taxInformations` → `taxInformation`)
 - **List field names**: when `maxOccurs > 1` (List), use plural form if the XML element name is singular (e.g., `itinerary` → `itineraries`)
@@ -153,6 +161,9 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
 - **Nullable fields**: make the field nullable only when `minOccurs` is explicitly `0`
 - **Required fields (default)**: when `minOccurs` is omitted, it defaults to `1` per XSD spec — make the field non-nullable
 - **Section comments**: use `// ─── Section Name ───` comments to organize related classes
+- **Package structure**: request classes go under `client/request/{subpkg}/`, response (reply) classes go under `client/response/{subpkg}/`. For example:
+  - `CommandCryptic.kt` → `client/request/commandcryptic/CommandCryptic.kt`
+  - `CommandCrypticReply.kt` → `client/response/commandcrypticreply/CommandCrypticReply.kt`
 
 ### 5. Validate maxOccurs Accuracy
 
@@ -182,6 +193,7 @@ Fix any compilation errors before finishing.
 | Wrong import package | Mixing `com.fasterxml.jackson` with `tools.jackson` | `@JsonRootName`/`@JsonPropertyOrder` → `com.fasterxml.jackson.annotation`, `@JacksonXmlProperty`/`@JacksonXmlElementWrapper` → `tools.jackson.dataformat.xml.annotation` |
 | Missing namespace on root | Root class needs namespace for SOAP envelope parsing | Add `namespace` parameter to `@JsonRootName` |
 | Non-nullable optional field | XSD `minOccurs="0"` mapped as non-nullable | Always use `?` for optional fields |
+| Version suffix in class name | XSD type names include internal version IDs like `_80157S` | Strip the `_?\d{3,}[A-Z]?` suffix; resolve collisions with parent class prefix |
 
 ## Checklist
 
@@ -194,5 +206,8 @@ Fix any compilation errors before finishing.
 - [ ] All `minOccurs="0"` elements are nullable (`?`)
 - [ ] All classes are top-level in a single file (no inner/nested classes)
 - [ ] No type reuse from other packages — all types defined locally
-- [ ] Version suffix applied consistently to all class names (if applicable)
+- [ ] XSD internal version suffixes stripped from all class names (no `_80157S`, `48648C`, etc.)
+- [ ] Name collisions after suffix stripping resolved with parent class prefix
+- [ ] File placed in correct package (`client/request/` or `client/response/`)
+- [ ] API version suffix applied consistently to all class names (if applicable)
 - [ ] Compilation succeeds with `./gradlew compileKotlin`
