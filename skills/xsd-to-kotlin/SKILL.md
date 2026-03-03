@@ -138,6 +138,8 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
 #### Naming Conventions
 
 - **Class names**: PascalCase matching the XSD type name, with optional version suffix (e.g., `NumberOfUnit24`)
+- **No root prefix on child classes**: child/supporting class names use the XSD `complexType` name directly — do NOT prefix them with the root element name. For example, if the root element is `FareMasterPricerTravelBoardSearch` and a child type is `NumberOfUnitsType`, the class name is `NumberOfUnitsType` (or `NumberOfUnitsType24` with suffix), NOT `FareMasterPricerTravelBoardSearchNumberOfUnitsType`
+- **Name collision handling**: if two different XSD complex types produce the same Kotlin class name, disambiguate by adding the parent type name as a prefix only to the conflicting types (e.g., `ItineraryAttributeType` vs `SegmentAttributeType`), keeping all non-conflicting types unprefixed
 - **Field names**: camelCase matching the XSD element name
 - **Single field names**: when `maxOccurs` is 1 or omitted (not a List), use singular form if the XML element name is plural (e.g., `errorDetails` → `errorDetail`, `taxInformations` → `taxInformation`)
 - **List field names**: when `maxOccurs > 1` (List), use plural form if the XML element name is singular (e.g., `itinerary` → `itineraries`)
