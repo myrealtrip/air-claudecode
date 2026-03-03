@@ -233,7 +233,7 @@ Verify the plugin structure is complete. Check each component and report status.
 
 Manage the `<\!--air-claudecode:start-->` / `<\!--air-claudecode:end-->` block in the user's global CLAUDE.md (`~/.claude/CLAUDE.md`).
 
-This step only creates/maintains the marker block. The block is a minimal placeholder -- users can add custom content between the markers later.
+This step creates or **replaces** the marker block to ensure it always matches the latest template. User-added content outside the markers is never modified.
 
 ### 3-1. Read current CLAUDE.md
 
@@ -243,7 +243,7 @@ cat ~/.claude/CLAUDE.md 2>/dev/null || echo "FILE_NOT_EXISTS"
 
 ### 3-2. Check for existing block
 
-Search for `<\!--air-claudecode:start-->` and `<\!--air-claudecode:end-->` markers.
+Search for `<\!--air-claudecode:start-->` and `<\!--air-claudecode:end-->` markers (including everything between them).
 
 ### 3-3. Generate block content
 
@@ -265,13 +265,11 @@ git-pr-master-trigger: ALWAYS use the `/air-claudecode:git-pr-master` skill when
 <\!--air-claudecode:end-->
 ```
 
-The block is intentionally minimal. Users can add custom instructions between the markers as needed.
-
 ### 3-4. Write block to CLAUDE.md
 
 - **File doesn't exist**: Create `~/.claude/CLAUDE.md` with just the block
 - **Block doesn't exist**: Append the block at the end of the file
-- **Block exists**: Do not overwrite -- leave existing content between markers intact
+- **Block exists**: **Replace the entire block** (from `<\!--air-claudecode:start-->` to `<\!--air-claudecode:end-->`) with the latest template. Use the `Edit` tool with `old_string` matching the full existing block and `new_string` containing the regenerated block. This ensures new triggers, removed triggers, and version updates are always applied.
 - **Never modify content outside the markers**
 
 Use the `Edit` tool (with `old_string` matching the existing block) or `Write` tool (for new file) as appropriate.
