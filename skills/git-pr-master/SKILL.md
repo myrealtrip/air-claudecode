@@ -25,29 +25,6 @@ Routes to the git-pr-master agent for GitHub pull request operations.
 - Interactive selection via AskUserQuestion
 - Uses `gh` CLI and optionally Atlassian MCP for Jira linking
 
-## PR Body Template
+## Details
 
-When creating a PR, use this template for the body:
-
-```markdown
-## Summary
-- [1-3 bullet points describing what this PR does]
-
-## Changes
-- [ ] Change 1
-- [ ] Change 2
-
-## Related
-- Jira: [PROJ-123](https://{jira-host}/browse/PROJ-123)
-- Issue: #{issue-number}
-
-## Test Plan
-- [ ] Unit tests added/updated
-- [ ] Manual testing completed
-- [ ] Edge cases verified
-
-## Checklist
-- [ ] Code follows team conventions
-- [ ] No unnecessary changes included
-- [ ] Self-reviewed before requesting review
-```
+PR body template, confirmation flow, and all rules are defined in the agent (`agents/git-pr-master.md`).
