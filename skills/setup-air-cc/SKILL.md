@@ -259,9 +259,14 @@ cat .claude-plugin/plugin.json | jq -r '.version'
 <\!--air-claudecode:start-->
 <\!-- air-claudecode v{version} — auto-generated, do not edit manually -->
 <\!-- To update: /air-claudecode:setup-air-cc --update -->
-software-engineer-trigger: ALWAYS use the `/air-claudecode:software-engineer` skill when writing code, implementing features, or fixing bugs. Never write code directly.
-git-commit-trigger: ALWAYS use the `/air-claudecode:git-commit` skill when committing changes. Never run `git commit` directly.
-git-pr-master-trigger: ALWAYS use the `/air-claudecode:git-pr-master` skill when creating pull requests. Never run `gh pr create` directly.
+## Blocked Commands (NEVER bypass)
+blocked-commands: NEVER run these commands directly. Invoke the required skill FIRST.
+| Blocked Command | Required Skill |
+|-----------------|----------------|
+| `git commit` | `/air-claudecode:git-commit` |
+| `gh pr create` | `/air-claudecode:git-pr-master` |
+| Direct code Edit/Write on source files | `/air-claudecode:software-engineer` |
+VIOLATION: Running a blocked command without invoking the required skill first.
 <\!--air-claudecode:end-->
 ```
 
