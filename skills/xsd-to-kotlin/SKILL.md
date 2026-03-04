@@ -147,10 +147,15 @@ import tools.jackson.dataformat.xml.annotation.JacksonXmlProperty
   - `FareFamilyType_80157S` → `FareFamilyType`
   - `MonetaryInformationType198917S` → `MonetaryInformationType` (no underscore case)
   - `AddressDetailsTypeU_198210C` → `AddressDetailsTypeU` (preserve `U`)
-- **Strip trailing `I` suffix from class names (conditional)**: remove trailing `I` **only when the original XSD type name ends with `I_?\d{3,}[A-Z]?$`** (i.e., `I` directly precedes the internal version suffix). Do not remove `I` for names where it is part of the domain term. Examples:
+- **Strip trailing `I` suffix from class names (conditional)**: remove trailing `I` when **either** of these conditions is met:
+  1. The original XSD type name ends with `I_?\d{3,}[A-Z]?$` (i.e., `I` directly precedes the internal version suffix)
+  2. The class name ends with `TypeI` exactly (no version suffix, but `I` is still a type variant marker)
+
+  Do not remove `I` for names where it is part of the domain term (e.g., `TaxI` where `I` is meaningful). Examples:
   - `StatusDetailsTypeI_185722C` → strip version → `StatusDetailsTypeI` → strip `I` → `StatusDetailsType`
   - `ItemNumberTypeI_192331C` → `ItemNumberType`
   - `SelectionDetailsTypeI_185689C` → `SelectionDetailsType`
+  - `SelectionDetailsTypeI` → strip `I` → `SelectionDetailsType` (no version suffix case)
   - Note: other trailing letters like `U` are preserved as they carry domain meaning
 - **No root prefix on child classes**: child/supporting class names use the XSD `complexType` name directly — do NOT prefix them with the root element name. For example, if the root element is `FareMasterPricerTravelBoardSearch` and a child type is `NumberOfUnitsType`, the class name is `NumberOfUnitsType` (or `NumberOfUnitsType24` with suffix), NOT `FareMasterPricerTravelBoardSearchNumberOfUnitsType`
 - **Name collision handling**: after stripping version suffixes, multiple XSD types may produce the same Kotlin class name within a single file. Resolve collisions by prefixing with the **parent class name** (the class that declares a property of that type), only for the conflicting types:
@@ -209,7 +214,7 @@ Fix any compilation errors before finishing.
 | Missing namespace on root | Root class needs namespace for SOAP envelope parsing | Add `namespace` parameter to `@JsonRootName` |
 | Non-nullable optional field | XSD `minOccurs="0"` mapped as non-nullable | Always use `?` for optional fields |
 | Version suffix in class name | XSD type names include internal version IDs like `_80157S` | Strip the `_?\d{3,}[A-Z]?$` suffix (end-anchored); resolve collisions with parent class prefix |
-| Trailing `I` in class name | XSD type variant marker `I` left in class name (e.g., `StatusDetailsTypeI`) | Strip trailing `I` **only when original name matches** `I_?\d{3,}[A-Z]?$` |
+| Trailing `I` in class name | XSD type variant marker `I` left in class name (e.g., `StatusDetailsTypeI`) | Strip trailing `I` when original name matches `I_?\d{3,}[A-Z]?$` **or** class name ends with `TypeI` |
 | Plural class name | Class named `NumberOfUnitsType` instead of `NumberOfUnitType` | Use singular form for all class names |
 | Singular List field name | List field uses singular name (e.g., `passenger: List<T>`) | Use plural form for List fields (`passengers: List<T>`) |
 | Plural non-List field name | Non-List field uses plural name (e.g., `errorDetails: T`) | Use singular form for non-List fields (`errorDetail: T`) |
@@ -226,7 +231,7 @@ Fix any compilation errors before finishing.
 - [ ] All classes are top-level in a single file (no inner/nested classes)
 - [ ] No type reuse from other packages — all types defined locally
 - [ ] XSD internal version suffixes stripped from all class names (no `_80157S`, `48648C`, etc.)
-- [ ] Trailing `I` suffix stripped **conditionally** (only when original XSD type ends with `I_?\d{3,}[A-Z]?$`)
+- [ ] Trailing `I` suffix stripped **conditionally** (when original XSD type ends with `I_?\d{3,}[A-Z]?$` or class name ends with `TypeI`)
 - [ ] Class names use singular form (e.g., `NumberOfUnitsType` → `NumberOfUnitType`)
 - [ ] Name collisions after suffix stripping resolved with parent class prefix
 - [ ] File placed in correct package (`client/request/` or `client/response/`)
