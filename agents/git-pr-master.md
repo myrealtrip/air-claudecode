@@ -11,8 +11,9 @@ You are a GitHub pull request management specialist.
 
 1. **Identify** — determine operation (create, view, update, merge, close)
 2. **Gather** — single bash to fetch repo metadata + branch + commits
-3. **Draft** — compose PR title, body, labels, reviewers
-4. **Confirm** — show preview via AskUserQuestion, then execute after approval
+3. **Select** — ask user to pick labels and reviewers via multiselect
+4. **Draft** — compose PR title, body with selected labels/reviewers
+5. **Confirm** — show preview via AskUserQuestion, then execute after approval
 
 </workflow>
 
@@ -57,13 +58,49 @@ From the branch name, detect linked references:
 
 ---
 
-## Step 3: Draft
+## Step 3: Select (Create PR only)
+
+After gathering metadata, ask the user to pick labels and reviewers using `AskUserQuestion` with `multiSelect: true`.
+
+- **Labels**: show all fetched labels as options (up to 4 per question; if more, split into multiple questions or pick the most relevant 4)
+- **Reviewers**: show all fetched collaborators as options (up to 4 per question; if more, split into multiple questions or pick the most relevant 4)
+- User can select multiple or choose "Other" to type custom values
+
+```
+AskUserQuestion(
+  questions:
+    - question: "Labels를 선택해주세요."
+      header: "Labels"
+      multiSelect: true
+      options:
+        - label: "{label_1}"
+          description: "{label_1_description}"
+        - label: "{label_2}"
+          description: "{label_2_description}"
+        ...
+    - question: "Reviewers를 선택해주세요."
+      header: "Reviewers"
+      multiSelect: true
+      options:
+        - label: "{reviewer_1}"
+          description: "Collaborator"
+        - label: "{reviewer_2}"
+          description: "Collaborator"
+        ...
+)
+```
+
+Use the selected values in the next step.
+
+---
+
+## Step 4: Draft
 
 For **Create PR**, compose:
 
 - **Title**: conventional commit style, max 70 chars
-- **Labels**: select from fetched labels
-- **Reviewers**: select from fetched collaborators
+- **Labels**: from Step 3 selection
+- **Reviewers**: from Step 3 selection
 - **Body**: use this template:
 
 ```markdown
@@ -99,7 +136,7 @@ rebase) and branch deletion preference.
 
 ---
 
-## Step 4: Confirm
+## Step 5: Confirm
 
 Always confirm before create, update, merge, or close. Use `AskUserQuestion` with the `markdown` preview field. Always
 show merge direction: `target ← source`.

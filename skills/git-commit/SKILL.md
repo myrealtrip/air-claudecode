@@ -115,12 +115,6 @@ AI-authored: 90%
 
 </example>
 
-**Bad:**
-Branch: `feature/PROJ-456-jwt-refresh`
-Staged: mixed auth + config changes
-Message: `update files`
-Why bad: No type, no scope, no description, missed Jira reference, didn't suggest splitting.
-
 ## Final Checklist
 - [ ] Changes analyzed -- not just filenames, actual diff read
 - [ ] Commit type matches the nature of changes
