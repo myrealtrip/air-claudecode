@@ -1,23 +1,23 @@
-# JPA & Hibernate
+# JPA와 Hibernate
 
-## 1. Core Principles
+## 1. 핵심 원칙
 
-| Principle | Rule |
-|-----------|------|
-| **Base class** | Always extend `BaseEntity` (full auditing) or `BaseTimeEntity` (timestamps only) |
-| **Enum mapping** | Always use `@Enumerated(EnumType.STRING)` -- never ORDINAL |
-| **Fetch type** | Always use `FetchType.LAZY` for all associations |
-| **Table name** | Always specify `@Table(name = "xxx")` explicitly |
-| **No associations** | Default: store FK as plain ID value, do NOT map entity associations |
+| 원칙 | 규칙 |
+|------|------|
+| **기본 클래스** | 항상 `BaseEntity` (전체 감사) 또는 `BaseTimeEntity` (시간만)를 상속한다 |
+| **Enum 매핑** | 항상 `@Enumerated(EnumType.STRING)` — ORDINAL 사용 금지 |
+| **Fetch 타입** | 모든 연관관계에 `FetchType.LAZY` 사용 |
+| **테이블명** | 항상 `@Table(name = "xxx")`를 명시적으로 지정한다 |
+| **연관관계 없음** | 기본: FK를 단순 ID 값으로 저장하며 엔티티 연관관계를 매핑하지 않는다 |
 
 ---
 
-## 2. BaseEntity vs BaseTimeEntity
+## 2. BaseEntity와 BaseTimeEntity
 
-| Class | When to use | Fields |
-|-------|-------------|--------|
-| `BaseTimeEntity` | Auditing by time only (no user tracking needed) | `createdAt`, `modifiedAt` |
-| `BaseEntity` | Full auditing (time + user) | `createdAt`, `modifiedAt`, `createdBy`, `modifiedBy` |
+| 클래스 | 사용 시점 | 필드 |
+|--------|-----------|------|
+| `BaseTimeEntity` | 시간만 감사 (사용자 추적 불필요) | `createdAt`, `modifiedAt` |
+| `BaseEntity` | 전체 감사 (시간 + 사용자) | `createdAt`, `modifiedAt`, `createdBy`, `modifiedBy` |
 
 ```kotlin
 @MappedSuperclass
@@ -53,22 +53,22 @@ abstract class BaseEntity : BaseTimeEntity() {
 
 ---
 
-## 3. Association Policy
+## 3. 연관관계 정책
 
-| Rule | Description |
-|------|-------------|
-| **Default** | Do NOT map entity associations -- store FK as plain ID value |
-| **Exception** | Unidirectional only, when absolutely necessary |
-| **Prohibited** | Bidirectional associations are strictly forbidden |
-| **Querying** | Use QueryDSL for joining related data |
+| 규칙 | 설명 |
+|------|------|
+| **기본** | 엔티티 연관관계를 매핑하지 않는다 — FK를 단순 ID 값으로 저장한다 |
+| **예외** | 단방향만 허용, 반드시 필요한 경우에만 |
+| **금지** | 양방향 연관관계는 엄격히 금지한다 |
+| **조회** | 관련 데이터 조인에 QueryDSL을 사용한다 |
 
-### Correct: No Association (store FK as ID)
+### 올바른 예: 연관관계 없음 (FK를 ID로 저장)
 
 ```kotlin
 @Entity
 @Table(name = "orders")
 class Order(
-    val userId: Long,       // store FK as plain Long, NOT @ManyToOne User
+    val userId: Long,       // FK를 단순 Long으로 저장, @ManyToOne User 아님
     val totalAmount: Long,
 ) : BaseEntity() {
 
@@ -78,7 +78,7 @@ class Order(
 }
 ```
 
-### Exception: Unidirectional Only (when absolutely necessary)
+### 예외: 단방향만 (반드시 필요한 경우에만)
 
 ```kotlin
 @Entity
@@ -100,9 +100,9 @@ class OrderItem(
 
 ---
 
-## 4. Entity Structure
+## 4. 엔티티 구조
 
-### Standard Entity Pattern
+### 표준 엔티티 패턴
 
 ```kotlin
 @Entity
@@ -137,25 +137,25 @@ class User(
 }
 ```
 
-### Entity Checklist
+### 엔티티 체크리스트
 
-| Item | Requirement |
-|------|-------------|
-| `@Entity` | Required on every entity class |
-| `@Table(name = "...")` | Always specify explicit table name |
-| Extends base class | Must extend `BaseEntity` or `BaseTimeEntity` |
-| `val` for id | Use `val` for immutable fields (`id`) |
-| `var` for mutable | Use `var` for fields that change |
-| Domain enums | Must implement `CommonCode` interface |
-| Mutation method | Mutations via `update*()` method |
-| Factory method | Creation via `create()` companion object function |
-| No DTO import | Entity must NOT import DTO classes |
+| 항목 | 요구사항 |
+|------|----------|
+| `@Entity` | 모든 엔티티 클래스에 필수 |
+| `@Table(name = "...")` | 항상 테이블명을 명시적으로 지정 |
+| 기본 클래스 상속 | `BaseEntity` 또는 `BaseTimeEntity`를 상속해야 함 |
+| id에 `val` | 불변 필드(`id`)에 `val` 사용 |
+| 가변 필드에 `var` | 변경되는 필드에 `var` 사용 |
+| 도메인 Enum | `CommonCode` 인터페이스를 구현해야 함 |
+| 상태 변경 메서드 | `update*()` 메서드로 변경 |
+| 팩토리 메서드 | `create()` companion object 함수로 생성 |
+| DTO 참조 금지 | 엔티티는 DTO 클래스를 참조하지 않는다 |
 
 ---
 
-## 5. Enum Mapping
+## 5. Enum 매핑
 
-Always use `EnumType.STRING` -- never `ORDINAL` (breaks if enum values are reordered).
+항상 `EnumType.STRING`을 사용한다 — `ORDINAL`은 Enum 값 순서를 변경하면 깨진다.
 
 ```kotlin
 @Enumerated(EnumType.STRING)
@@ -163,7 +163,7 @@ Always use `EnumType.STRING` -- never `ORDINAL` (breaks if enum values are reord
 var status: OrderStatus = OrderStatus.PENDING
 ```
 
-All domain enums must implement the `CommonCode` interface from the common module:
+모든 도메인 Enum은 common 모듈의 `CommonCode` 인터페이스를 구현한다:
 
 ```kotlin
 enum class OrderStatus(
@@ -178,9 +178,9 @@ enum class OrderStatus(
 
 ---
 
-## 6. Fetch Strategies
+## 6. Fetch 전략
 
-Always use `FetchType.LAZY`. `@ManyToOne` and `@OneToOne` default to `EAGER` in JPA -- you MUST override them explicitly:
+항상 `FetchType.LAZY`를 사용한다. JPA에서 `@ManyToOne`과 `@OneToOne`은 기본값이 `EAGER`이므로 반드시 명시적으로 변경한다:
 
 ```kotlin
 @ManyToOne(fetch = FetchType.LAZY)
@@ -188,23 +188,23 @@ Always use `FetchType.LAZY`. `@ManyToOne` and `@OneToOne` default to `EAGER` in 
 val order: Order
 ```
 
-Lazy loading issues (`LazyInitializationException`, N+1) are resolved by fetching as a DTO via QueryDSL within the transaction -- never by switching to `EAGER`.
+지연 로딩 문제(`LazyInitializationException`, N+1)는 트랜잭션 내에서 QueryDSL로 DTO를 조회하여 해결한다 — `EAGER`로 전환하지 않는다.
 
 ---
 
-## 7. Locking Strategies
+## 7. 잠금 전략
 
-| Strategy | Annotation | Use Case |
-|----------|-----------|---------|
-| **Optimistic** | `@Version` | Low contention, read-heavy; fails fast on conflict |
-| **Pessimistic** | `@Lock(LockModeType.PESSIMISTIC_WRITE)` | High contention, critical sections; blocks concurrent access |
+| 전략 | 어노테이션 | 사용 시점 |
+|------|-----------|-----------|
+| **낙관적** | `@Version` | 낮은 경합, 읽기 위주, 충돌 시 빠르게 실패 |
+| **비관적** | `@Lock(LockModeType.PESSIMISTIC_WRITE)` | 높은 경합, 임계 영역, 동시 접근 차단 |
 
 ```kotlin
-// Optimistic: add @Version field to the entity
+// 낙관적: 엔티티에 @Version 필드 추가
 @Version
 val version: Long = 0
 
-// Pessimistic: annotate the repository query method
+// 비관적: 리포지토리 쿼리 메서드에 어노테이션
 @Lock(LockModeType.PESSIMISTIC_WRITE)
 @Query("select p from Product p where p.id = :id")
 fun findByIdWithLock(@Param("id") id: Long): Product?
@@ -212,9 +212,9 @@ fun findByIdWithLock(@Param("id") id: Long): Product?
 
 ---
 
-## 8. Entity State & Dirty Checking
+## 8. 엔티티 상태와 더티 체킹
 
-Managed entities within a `@Transactional` method are automatically tracked -- no explicit `save()` call is needed for updates, just mutate the entity.
+`@Transactional` 메서드 내의 관리 상태 엔티티는 자동으로 추적된다 — 업데이트 시 명시적 `save()` 호출이 불필요하며, 엔티티를 변경하기만 하면 된다.
 
 ```kotlin
 @Transactional
@@ -223,30 +223,30 @@ fun updateUserName(userId: Long, newName: String) {
         ?: throw UserNotFoundException(userId)
 
     user.updateName(newName)
-    // No userRepository.save(user) needed -- dirty checking handles it
+    // userRepository.save(user) 불필요 — 더티 체킹이 처리
 }
 ```
 
 ---
 
-## 9. Configuration
+## 9. 설정
 
-### Recommended YAML Settings
+### 권장 YAML 설정
 
 ```yaml
 spring:
   jpa:
     hibernate:
-      ddl-auto: none              # never auto-generate DDL in production
-    open-in-view: false           # disable OSIV (mandatory)
+      ddl-auto: none              # 프로덕션에서 DDL 자동 생성 금지
+    open-in-view: false           # OSIV 비활성화 (필수)
     properties:
       hibernate:
         default_batch_fetch_size: 500
         jdbc.batch_size: 500
-        order_updates: true       # batch UPDATE statements together
-        order_inserts: true       # batch INSERT statements together
+        order_updates: true       # UPDATE 문 배치 처리
+        order_inserts: true       # INSERT 문 배치 처리
 ```
 
 ### OSIV (Open Session in View)
 
-> **Mandatory**: Set `open-in-view: false`. OSIV keeps the DB connection open for the entire HTTP request lifecycle, causing connection pool exhaustion under load. With it disabled, connections are released at the end of `@Transactional` scope and all data fetching must be explicit in the service layer.
+> **필수**: `open-in-view: false`로 설정한다. OSIV는 전체 HTTP 요청 생명주기 동안 DB 커넥션을 열어두어 부하 시 커넥션 풀 고갈을 유발한다. 비활성화하면 `@Transactional` 스코프 종료 시 커넥션이 반환되며 서비스 계층에서 모든 데이터 조회를 명시적으로 수행해야 한다.
