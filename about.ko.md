@@ -255,10 +255,10 @@ Auto Mode(`--auto`, "자동 커밋")를 사용하면 Confirm 단계를 건너뛰
 
 ## 컨벤션: 코드로 관리하는 팀 표준
 
-`conventions/` 디렉토리에 팀이 합의한 코딩 표준이 마크다운으로 정리되어 있다.
+`plugins/air-claudecode/conventions/` 디렉토리에 팀이 합의한 코딩 표준이 마크다운으로 정리되어 있다.
 
 ```
-conventions/
+plugins/air-claudecode/conventions/
   naming-conventions.md      # 네이밍 규칙 (클래스, DTO, URL, 테스트 등)
   git-workflow.md            # Git Flow, 커밋, 머지 전략
   project-conventions/
@@ -323,7 +323,7 @@ AI가 `git commit`을 실행하려 하면, Hook이 승인 마커 파일(`/tmp/.a
 
 1. `UserPromptSubmit` 시점에 실행된다. 사용자가 프롬프트를 입력할 때마다 매번 동작한다.
 2. 현재 작업 디렉토리(`cwd`)가 대상 레포 안인지 확인한다. 디렉토리 경로에 대상 레포 이름이 포함되어 있거나, 워크스페이스 루트에 대상 레포 폴더가 있으면 감지한다.
-3. 대상 레포로 감지되면, `reference/air-project-guide/index.md`를 읽어서 AI 컨텍스트에 주입한다.
+3. 대상 레포로 감지되면, `plugins/air-claudecode/reference/air-project-guide/index.md`를 읽어서 AI 컨텍스트에 주입한다.
 
 **매 프롬프트마다 실행하는 이유:** Claude Code는 대화가 길어지면 이전 컨텍스트를 압축한다. 세션 시작 시 한 번만 주입하면 압축 과정에서 가이드가 사라진다. 매 프롬프트마다 주입하면 컨텍스트 압축이나 레포 전환에도 가이드가 유지된다.
 
@@ -342,7 +342,7 @@ AI가 `git commit`을 실행하려 하면, Hook이 승인 마커 파일(`/tmp/.a
 **주입되는 가이드 구조:** 40개의 개발 가이드 문서가 AI용(영문)과 사람용(한국어) 두 버전으로 제공된다.
 
 ```
-reference/air-project-guide/
+plugins/air-claudecode/reference/air-project-guide/
   index.md                    # 키워드 → 가이드 파일 룩업 테이블
   ai/                         # AI 컨텍스트용 (영문)
     architecture/
