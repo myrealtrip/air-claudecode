@@ -2,15 +2,15 @@
 
 ## 엔티티를 직접 반환하지 않는다
 
-JPA 엔티티를 API 응답으로 직접 반환하지 않는다 — 반드시 Response DTO로 변환한다. 변환 흐름: `JPA Entity → Domain Model → {Feature}Result (응용 계층) → {Feature}Response (표현 계층)`.
+JPA 엔티티를 API 응답으로 직접 반환하지 않는다 — 반드시 Response DTO로 변환한다. 변환 흐름: `Entity → {Feature}Result (응용 계층) → {Feature}Response (표현 계층)`.
 
 ```kotlin
 // 나쁜 예: JPA 엔티티를 직접 노출
-fun getOrder(@PathVariable id: Long): OrderJpaEntity = orderService.getOrderEntity(id)
+fun getOrder(@PathVariable id: Long): Order = orderService.getOrderEntity(id)
 
-// 좋은 예: JPA 엔티티 → 도메인 모델 → 결과 → 응답
+// 좋은 예: 엔티티 → 결과 → 응답
 fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>> =
-    ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
+    ResponseEntity.ok(ApiResource.success(OrderResponse.of(getOrderUseCase(id))))
 ```
 
 ---
@@ -75,7 +75,7 @@ data class OrderResponse(
     @get:JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") val createdAt: LocalDateTime,
 ) {
     companion object {
-        fun from(result: OrderResult): OrderResponse = OrderResponse(result.id, result.itemName, result.status.code, result.createdAt)
+        fun of(result: OrderResult): OrderResponse = OrderResponse(result.id, result.itemName, result.status.code, result.createdAt)
     }
 }
 ```

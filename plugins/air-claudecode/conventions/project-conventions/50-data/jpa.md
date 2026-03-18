@@ -126,13 +126,12 @@ class User(
     }
 
     companion object {
-        fun create(email: String, name: String): User {
-            return User(
-                email = email,
-                name = name,
+        fun of(command: CreateUserCommand): User =
+            User(
+                email = command.email,
+                name = command.name,
                 status = UserStatus.ACTIVE,
             )
-        }
     }
 }
 ```
@@ -148,8 +147,8 @@ class User(
 | 가변 필드에 `var` | 변경되는 필드에 `var` 사용 |
 | 도메인 Enum | `CommonCode` 인터페이스를 구현해야 함 |
 | 상태 변경 메서드 | `update*()` 메서드로 변경 |
-| 팩토리 메서드 | `create()` companion object 함수로 생성 |
-| DTO 참조 금지 | 엔티티는 DTO 클래스를 참조하지 않는다 |
+| 팩토리 메서드 | `of(command)` companion object 함수로 생성 |
+| Application DTO 참조 | `Entity.of(Command)`로 생성. 변환은 `Result.of(entity)` 패턴 사용 |
 
 ---
 

@@ -43,7 +43,7 @@ fun createOrder(command: CreateOrderCommand): OrderId {
 // REQUIRES_NEW: 외부 트랜잭션이 롤백되어도 감사 로그를 저장해야 한다
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 fun saveAuditLog(event: AuditEvent) {
-    auditLogRepository.save(AuditLog.from(event))
+    auditLogRepository.save(AuditLog.of(event))
 }
 ```
 
@@ -79,7 +79,7 @@ fun calculateBalance(accountId: Long): BigDecimal {
 fun getOrderDetail(orderId: Long): OrderDetailResponse {
     val order = orderRepository.findById(orderId)
         ?: throw OrderNotFoundException(orderId)
-    return OrderDetailResponse.from(order)
+    return OrderDetailResponse.of(order)
 }
 ```
 
@@ -182,7 +182,7 @@ YAML을 통한 전역 타임아웃: `spring.transaction.default-timeout: 30` (�
 @Transactional(rollbackFor = [PaymentException::class])
 fun processPayment(command: PaymentCommand) {
     val result = paymentGateway.charge(command)
-    paymentRepository.save(Payment.from(result))
+    paymentRepository.save(Payment.of(result))
 }
 
 // 비핵심 예외에서 롤백하지 않음

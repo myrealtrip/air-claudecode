@@ -84,7 +84,7 @@ knownNotBlank(request.reason, OrderError.REASON_REQUIRED) { "Reason must not be 
 |----------|--------|
 | `DateFormatter` | `.toDate()`, `.toDateTime()`, `.toStr()`, `.toKorean()` |
 | `SearchDates` | `.lastMonth()`, `.lastDays(n)`, `.thisWeek()`, `.of(start, end)` |
-| `LocalDateRange` | `.from(start, end)`, `in`, `.overlaps()`, `.daysBetween()` |
+| `LocalDateRange` | `.of(start, end)`, `in`, `.overlaps()`, `.daysBetween()` |
 
 ---
 

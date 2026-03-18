@@ -15,14 +15,13 @@
                ▼                          ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                    infrastructure                            │
-│    JPA Entity, Mapper, Repository, Cache, Redis, HTTP Client, │
-│    Export, Slack                                              │
+│    Cache, Redis, HTTP Client, Export, Slack                   │
 └──────────────────────────┬───────────────────────────────────┘
                            │
                            ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                       domain                                 │
-│   Domain Model, Policy, Service, Event, UseCase,             │
+│   Entity, Repository, Policy, Service, Event, UseCase,        │
 │   Application Service, DTO                                    │
 └──────────────────────────┬───────────────────────────────────┘
                            │
@@ -47,8 +46,8 @@ modules/
 ├── common/                # Codes, Exceptions, Values, Utils, Extensions
 ├── common-web/            # Filters, Interceptors, ExceptionHandler, ApiResource
 ├── test-support/          # Test fixtures, REST Docs support
-├── domain/                # Domain Model, Policy, Service, Event, UseCase, Application Service, DTO
-├── infrastructure/        # JPA Entity, Mapper, Repository, Cache, Redis, RestClient, Export, Slack
+├── domain/                # Entity, Repository, Policy, Service, Event, UseCase, Application Service, DTO
+├── infrastructure/        # Cache, Redis, RestClient, Export, Slack
 ├── bootstrap/
 │   ├── {name}-api-app/    # API server (Controller, Request, Response)
 │   └── {name}-worker-app/ # Worker server
@@ -85,13 +84,13 @@ docs         →  bootstrap, test-support (compileOnly)
 | `infrastructure` | `bootstrap`, `common-web` |
 | `common-web` | `domain`, `infrastructure`, `bootstrap` |
 
-`domain` 내부: Application DTO는 Domain Model에 의존한다. Domain Model은 DTO를 참조하지 않는다.
+`domain` 내부: Entity와 Application DTO는 서로 참조할 수 있다. `Entity.of(Command)` 패턴으로 생성하고, `Result.of(entity)` 패턴으로 변환한다.
 
 ---
 
 ## 프로파일별 DataSource 라우팅
 
-`@Transactional(readOnly = true)`은 Slave로 라우팅하고, `@Transactional` (쓰기)은 Master로 라우팅한다. 라우팅 로직은 `infrastructure/persistence/config/RoutingDataSource.kt`에 위치한다.
+`@Transactional(readOnly = true)`은 Slave로 라우팅하고, `@Transactional` (쓰기)은 Master로 라우팅한다. 라우팅 로직은 `infrastructure/config/RoutingDataSource.kt`에 위치한다.
 
 | 프로파일 | DataSource |
 |----------|-----------|
@@ -129,10 +128,10 @@ class FlightClientConfig {
 
 ### 새 도메인 기능
 
-1. `{projectGroup}.domain.{feature}/` 패키지를 생성하고 하위 패키지를 구성한다: `model/`, `policy/`, `service/`, `event/`, `usecase/`, `dto/`, `exception/`
+1. `{projectGroup}.domain.{feature}/` 패키지를 생성하고 하위 패키지를 구성한다: `policy/`, `service/`, `event/`, `usecase/`, `dto/`, `exception/`
 2. `{Feature}Error.kt` (ResponseCode를 구현하는 Enum) 생성
 3. `{Feature}Exception.kt` (기본 + `NotFoundException` 등) 생성
-4. Domain Model, Policy, UseCase, Application Service, DTO 클래스 생성
+4. Entity, Repository, Policy, UseCase, Application Service, DTO 클래스 생성
 
 ### 새 bootstrap 앱
 

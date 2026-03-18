@@ -23,7 +23,7 @@
 - `@Entity` + `@Table(name = "xxx")` + `BaseEntity`/`BaseTimeEntity` 상속
 - 불변 필드(`id`)는 `val`, 가변 필드는 `var`
 - 상태 변경은 `update()` 메서드, 생성은 `create()` companion으로
-- **엔티티는 DTO를 참조하지 않는다**
+- **엔티티는 Application DTO(Command, Result)를 참조할 수 있다** — `Entity.of(Command)`로 생성, `Result.of(entity)`로 변환
 
 ### 설정
 
