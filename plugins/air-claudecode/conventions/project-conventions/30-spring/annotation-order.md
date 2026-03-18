@@ -36,7 +36,7 @@ Spring/JPA 어노테이션을 먼저, Lombok을 마지막에 선언한다. 핵�
 class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -74,7 +74,7 @@ class Order(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0
+    val id: Long? = null
 }
 ```
 
@@ -94,7 +94,7 @@ class OrderItem(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0
+    val id: Long? = null
 }
 ```
 
@@ -119,7 +119,7 @@ class User(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0
+    val id: Long? = null
 
     fun updateName(newName: String) {
         this.name = newName
