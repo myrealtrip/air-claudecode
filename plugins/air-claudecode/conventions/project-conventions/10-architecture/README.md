@@ -31,7 +31,7 @@ common → nothing
 
 ## 4계층 구조
 
-```
+```text
 Controller (bootstrap) → UseCase (domain)
   → Application Service (domain)
     → Domain Model / Policy / Service (domain)
