@@ -23,10 +23,9 @@
 | 응용 서비스 | `{Feature}Service` | `OrderService` |
 | 도메인 정책 | `{Feature}{Rule}Policy` | `OrderLimitPolicy` |
 | 도메인 서비스 | `{Concept}Service` | `DiscountService` |
-| JPA 엔티티 | `{Feature}JpaEntity` | `OrderJpaEntity` |
-| JPA 리포지토리 | `{Feature}JpaRepository` | `OrderJpaRepository` |
+| 엔티티 | `{Feature}` | `Order` |
+| 리포지토리 | `{Feature}Repository` | `OrderRepository` |
 | 쿼리 리포지토리 | `{Feature}QueryRepository` | `OrderQueryRepository` |
-| Mapper | `{Feature}Mapper` | `OrderMapper` |
 
 ## DTO
 
@@ -38,12 +37,11 @@
 | 응용 계층 결과 | `{Feature}Result` | `application/dto/result/` |
 | 검색 조건 | `{Feature}SearchCondition` | `application/dto/command/` |
 
-## 엔티티와 도메인
+## 엔티티
 
 | 대상 | 패턴 | 예시 |
 |------|------|------|
-| 도메인 모델 | `{Feature}` (명사) | `Order`, `User`, `Payment` |
-| JPA 엔티티 | `{Feature}JpaEntity` | `OrderJpaEntity`, `UserJpaEntity` |
+| 엔티티 | `{Feature}` (명사) | `Order`, `User`, `Payment` |
 | 테이블명 | `snake_case`, 복수형 | `orders`, `users`, `payment_methods` |
 | 컬럼명 | `snake_case` | `created_at`, `order_status` |
 | Enum 클래스 | `PascalCase` | `OrderStatus`, `PaymentMethod` |

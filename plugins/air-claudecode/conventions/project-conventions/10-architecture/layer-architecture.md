@@ -6,7 +6,7 @@
 Presentation (Controller)
   → Application (UseCase / Application Service)
     → Domain (Model / Policy / Service / Event)
-      ← Infrastructure (Persistence / Client / Event Listener)
+      ← Infrastructure (Client / Event Listener)
 ```
 
 상위 계층만 하위 계층에 의존한다. 인프라 계층은 도메인 계층에 의존한다. 역방향 의존은 금지한다.
@@ -33,11 +33,11 @@ class HolidayExternalController(
 ) {
     @GetMapping("/{id}")
     fun getById(@PathVariable id: Long): ResponseEntity<ApiResource<HolidayResponse>> =
-        ResponseEntity.ok(ApiResource.success(HolidayResponse.from(getHolidayUseCase(id))))
+        ResponseEntity.ok(ApiResource.success(HolidayResponse.of(getHolidayUseCase(id))))
 
     @PostMapping
     fun create(@Valid @RequestBody request: CreateHolidayRequest): ResponseEntity<ApiResource<HolidayResponse>> =
-        ResponseEntity.ok(ApiResource.success(HolidayResponse.from(createHolidayUseCase(request.toCommand()))))
+        ResponseEntity.ok(ApiResource.success(HolidayResponse.of(createHolidayUseCase(request.toCommand()))))
 }
 ```
 
@@ -97,28 +97,25 @@ class CreateHolidayUseCase(
 |------|------|
 | 어노테이션 | `@Service` |
 | 트랜잭션 | `@Transactional` **금지** (UseCase에서 전파) |
-| 의존성 주입 | Repository, Mapper |
+| 의존성 주입 | Repository |
 | 반환 타입 | `{Feature}Result` |
-| 책임 | 리포지토리 접근 위임, Mapper를 통한 Domain ↔ JPA Entity 변환 |
+| 책임 | 리포지토리 접근 위임 |
 
 ```kotlin
 @Service
 class HolidayService(
-    private val holidayJpaRepository: HolidayJpaRepository,
+    private val holidayRepository: HolidayRepository,
     private val holidayQueryRepository: HolidayQueryRepository,
-    private val holidayMapper: HolidayMapper,
 ) {
     fun findById(id: Long): HolidayResult =
-        holidayJpaRepository.findById(id)
-            .map { holidayMapper.toDomain(it) }
-            .map { HolidayResult.from(it) }
+        holidayRepository.findById(id)
+            .map { HolidayResult.of(it) }
             .orElseThrow { HolidayNotFoundException(id) }
 
     fun create(command: CreateHolidayCommand): HolidayResult {
-        val domain = Holiday.create(command.holidayDate, command.name)
-        val entity = holidayMapper.toEntity(domain)
-        val saved = holidayJpaRepository.save(entity)
-        return HolidayResult.from(holidayMapper.toDomain(saved))
+        val holiday = Holiday.of(command)
+        val saved = holidayRepository.save(holiday)
+        return HolidayResult.of(saved)
     }
 
     fun findPageByYear(year: Int, pageable: Pageable): Page<HolidayResult> =
@@ -132,29 +129,40 @@ class HolidayService(
 
 **패키지**: `{projectGroup}.{appname}.domain`
 
-순수 Kotlin으로 작성한다. Spring, JPA, 외부 프레임워크 의존성을 사용하지 않는다.
+도메인 계층은 비즈니스 로직의 핵심이다. Entity 클래스는 JPA/Document 어노테이션과 함께 이 계층에 위치한다.
 
-### Domain Model
+### Domain Model (Entity)
 
 | 항목 | 규칙 |
 |------|------|
-| 위치 | `domain/model/{feature}/` |
-| 프레임워크 | **없음** — 순수 Kotlin |
+| 위치 | `domain/{feature}/` |
+| 프레임워크 | JPA 어노테이션 사용 (`@Entity`, `@Table`, `@Column` 등) |
 | 상태 변경 | 비즈니스 메서드로만 변경 |
-| 팩토리 | `companion object { fun create(...) }` |
+| 팩토리 | `companion object { fun of(command): Entity }` |
+| DTO 참조 | Application DTO(Command, Result)를 참조할 수 있다 |
 
 ```kotlin
-class Holiday private constructor(
-    val id: Long? = null,
+@Entity
+@Table(name = "holidays")
+class Holiday(
+    @Column(nullable = false)
     val holidayDate: LocalDate,
-    val name: String,
-) {
-    fun update(holidayDate: LocalDate, name: String): Holiday =
-        Holiday(id = this.id, holidayDate = holidayDate, name = name)
+
+    @Column(nullable = false, length = 100)
+    var name: String,
+) : BaseTimeEntity() {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null
+
+    fun update(name: String) {
+        this.name = name
+    }
 
     companion object {
-        fun create(holidayDate: LocalDate, name: String): Holiday =
-            Holiday(holidayDate = holidayDate, name = name)
+        fun of(command: CreateHolidayCommand): Holiday =
+            Holiday(holidayDate = command.holidayDate, name = command.name)
     }
 }
 
@@ -163,6 +171,22 @@ data class Money(val amount: BigDecimal, val currency: Currency) {
         require(currency == other.currency) { "Currency mismatch" }
         return Money(amount + other.amount, currency)
     }
+}
+```
+
+### Repository
+
+| 항목 | 규칙 |
+|------|------|
+| 위치 | `domain/{feature}/` 또는 `domain/repository/` |
+| 어노테이션 | `@Repository` |
+| 인터페이스 | `JpaRepository<{Feature}, Long>` 상속 |
+
+```kotlin
+@Repository
+interface HolidayRepository : JpaRepository<Holiday, Long> {
+    @Query("select h from Holiday h where year(h.holidayDate) = :year order by h.holidayDate")
+    fun findByYear(year: Int): List<Holiday>
 }
 ```
 
@@ -243,72 +267,27 @@ data class OrderCancelledEvent(val orderId: Long, val reason: String)
 
 **패키지**: `{projectGroup}.{appname}.infrastructure`
 
-영속성, 외부 API 클라이언트, 이벤트 리스너를 구현한다. 도메인 계층에 의존한다.
+외부 API 클라이언트, 이벤트 리스너를 구현한다. 도메인 계층에 의존한다.
 
-### JPA Entity
-
-| 항목 | 규칙 |
-|------|------|
-| 위치 | `infrastructure/persistence/entity/` |
-| 네이밍 | `{Feature}JpaEntity` |
-| 프레임워크 | JPA 어노테이션, `BaseTimeEntity` |
-| 관계 | Domain Model과 완전히 분리 |
-
-```kotlin
-@Entity
-@Table(name = "holidays")
-class HolidayJpaEntity(
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long? = null,
-    @Column(nullable = false) var holidayDate: LocalDate,
-    @Column(nullable = false, length = 100) var name: String,
-) : BaseTimeEntity()
-```
-
-### Mapper
+### 외부 API 클라이언트
 
 | 항목 | 규칙 |
 |------|------|
-| 위치 | `infrastructure/persistence/mapper/` |
-| 어노테이션 | `@Component` |
-| 메서드 | `toDomain(entity): DomainModel`, `toEntity(domain): JpaEntity` |
-
-```kotlin
-@Component
-class HolidayMapper {
-    fun toDomain(entity: HolidayJpaEntity): Holiday =
-        Holiday(id = entity.id, holidayDate = entity.holidayDate, name = entity.name)
-
-    fun toEntity(domain: Holiday): HolidayJpaEntity =
-        HolidayJpaEntity(
-            id = domain.id,
-            holidayDate = domain.holidayDate,
-            name = domain.name,
-        )
-}
-```
-
-### JPA Repository
-
-```kotlin
-@Repository
-interface HolidayJpaRepository : JpaRepository<HolidayJpaEntity, Long> {
-    @Query("select h from HolidayJpaEntity h where year(h.holidayDate) = :year order by h.holidayDate")
-    fun findByYear(year: Int): List<HolidayJpaEntity>
-}
-```
+| 위치 | `infrastructure/client/` |
+| 응답 변환 | `response.toDto()` 패턴으로 Application DTO로 변환 |
+| 의존성 | Application DTO만 참조 가능 (Domain, Presentation 금지) |
 
 ### QueryRepository — 동적 조건, 페이징, 복잡한 조인에 사용한다. **메서드는 `fetch` 접두사를 사용한다.**
 
 ```kotlin
 @Repository
-class HolidayQueryRepository : QuerydslRepositorySupport(HolidayJpaEntity::class.java) {
+class HolidayQueryRepository : QuerydslRepositorySupport(Holiday::class.java) {
     fun fetchPageByYear(year: Int, pageable: Pageable): Page<HolidayResult> =
         applyPagination(
             pageable,
-            contentQuery = { it.selectFrom(holidayJpaEntity).where(holidayJpaEntity.holidayDate.year().eq(year)).orderBy(holidayJpaEntity.holidayDate.asc()) },
-            countQuery = { it.select(holidayJpaEntity.count()).from(holidayJpaEntity).where(holidayJpaEntity.holidayDate.year().eq(year)) },
-        ).map { HolidayResult.from(it) }
+            contentQuery = { it.selectFrom(holiday).where(holiday.holidayDate.year().eq(year)).orderBy(holiday.holidayDate.asc()) },
+            countQuery = { it.select(holiday.count()).from(holiday).where(holiday.holidayDate.year().eq(year)) },
+        ).map { HolidayResult.of(it) }
 }
 ```
 
@@ -331,45 +310,19 @@ class HolidayEventListener(private val slackClient: SlackClient) {
 
 ---
 
-## Domain Model과 인프라 Entity
+## Entity와 Application DTO
 
-### 분리 원칙
+### 변환 원칙
 
-Domain Model과 JPA Entity는 **완전히 분리된 클래스**다. Domain Model은 프레임워크 어노테이션이 없는 순수 Kotlin 클래스다. JPA Entity는 JPA/Hibernate 어노테이션을 가진 인프라 관심사다.
+Entity와 Application DTO 간 변환은 각 클래스의 메서드를 통해 직접 수행한다. 별도의 Mapper 계층은 사용하지 않는다.
 
-| 관점 | Domain Model | JPA Entity |
-|------|-------------|-----------|
-| 패키지 | `domain/model/{feature}/` | `infrastructure/persistence/entity/` |
-| 어노테이션 | 없음 (순수 Kotlin) | `@Entity`, `@Table`, `@Column` |
-| 목적 | 비즈니스 로직, 불변식 | ORM 매핑, 영속성 |
-| 네이밍 | `{Feature}` (예: `Holiday`) | `{Feature}JpaEntity` (예: `HolidayJpaEntity`) |
-| 가변성 | 불변 또는 비즈니스 메서드로 제어 | JPA 더티 체킹을 위해 가변 |
-
-### Mapper 패턴
-
-Domain Model과 JPA Entity 간 모든 변환은 `infrastructure/persistence/mapper/`의 `{Feature}Mapper`를 통해 수행한다.
-
-```kotlin
-@Component
-class OrderMapper {
-    fun toDomain(entity: OrderJpaEntity): Order =
-        Order(
-            id = entity.id,
-            userId = entity.userId,
-            status = entity.status,
-            totalAmount = Money(entity.totalAmount, entity.currency),
-        )
-
-    fun toEntity(domain: Order): OrderJpaEntity =
-        OrderJpaEntity(
-            id = domain.id,
-            userId = domain.userId,
-            status = domain.status,
-            totalAmount = domain.totalAmount.amount,
-            currency = domain.totalAmount.currency,
-        )
-}
-```
+| 변환 방향 | 패턴 | 위치 |
+|-----------|------|------|
+| Command → Entity | `Entity.of(command)` | Entity companion object |
+| Entity → Result | `Result.of(entity)` | Result companion object |
+| Request → Command | `request.toCommand()` | Request 인스턴스 메서드 |
+| Result → Response | `Response.of(result)` | Response companion object |
+| 외부 API Response → DTO | `response.toDto()` | Response 인스턴스 메서드 |
 
 ---
 
@@ -377,16 +330,16 @@ class OrderMapper {
 
 ```
 [HTTP Request JSON] → CreateHolidayRequest (Presentation) → CreateHolidayCommand (Application)
-  → Holiday Domain Model → HolidayResult (Application) → HolidayResponse (Presentation) → [HTTP Response JSON]
+  → Holiday.of(command) (Domain) → HolidayResult.of(entity) (Application) → HolidayResponse.of(result) (Presentation) → [HTTP Response JSON]
 ```
 
 | 단계 | 출발 | 도착 | 위치 |
 |------|------|------|------|
 | HTTP 수신 | JSON body | `{Feature}Request` (표현 계층) | Spring 역직렬화 |
 | 표현 → 응용 | `{Feature}Request` | `{Feature}Command` (응용 계층) | Controller (`request.toCommand()`) |
-| 응용 → 도메인 | `{Feature}Command` | `{Feature}` Domain Model | Application Service (`Model.create()`) |
-| 도메인 → 응용 | `{Feature}` Domain Model | `{Feature}Result` (응용 계층) | Application Service (`Result.from(model)`) |
-| 응용 → 표현 | `{Feature}Result` | `{Feature}Response` (표현 계층) | Controller (`Response.from(result)`) |
+| 응용 → 도메인 | `{Feature}Command` | `{Feature}` Entity | Application Service (`Entity.of(command)`) |
+| 도메인 → 응용 | `{Feature}` Entity | `{Feature}Result` (응용 계층) | Application Service (`Result.of(entity)`) |
+| 응용 → 표현 | `{Feature}Result` | `{Feature}Response` (표현 계층) | Controller (`Response.of(result)`) |
 | HTTP 송신 | `{Feature}Response` | JSON body | `ApiResource.success()` |
 
 ---
@@ -399,7 +352,7 @@ class OrderMapper {
 |------|-----------|-----------|
 | Controller | UseCase만 | Service, Repository, Infrastructure |
 | UseCase | Application Service, Domain Policy, Domain Service, EventPublisher | Repository, 다른 UseCase |
-| Application Service | Repository, Mapper | 다른 Application Service |
+| Application Service | Repository | 다른 Application Service |
 | Domain Policy / Service | (다른 도메인 컴포넌트 허용) | Repository, Infrastructure |
 
 | 계층 | 트랜잭션 | DataSource |
@@ -473,11 +426,9 @@ class OrderCreatedEventListener(private val inventoryService: InventoryService) 
 | 2 | Controller에서 Repository를 직접 호출 | 모든 비즈니스 계층을 우회 | Controller → UseCase → Application Service → Repository |
 | 3 | UseCase에서 Repository를 직접 호출 | Application Service를 우회하여 오케스트레이션과 데이터 접근이 혼합 | UseCase → Application Service → Repository |
 | 4 | Application Service에서 Response DTO를 반환 | 표현 계층에 대한 상향 의존성 발생 | Application Service는 `{Feature}Result`만 반환 |
-| 5 | JPA Entity를 API 응답으로 반환 | 내부 구조 노출, 계약 없음 | JpaEntity → Domain Model → Result → Response 변환 체인 |
+| 5 | JPA Entity를 API 응답으로 반환 | 내부 구조 노출, 계약 없음 | Entity → Result → Response 변환 체인 |
 | 6 | UseCase에 비즈니스 로직 작성 | 역할 혼동, UseCase는 오케스트레이션 전용 | 비즈니스 로직은 Domain Policy/Service에 작성 |
 | 7 | Application Service에 `@Transactional` 선언 | 중복 트랜잭션 관리, 충돌 가능 | UseCase에서만 트랜잭션 관리 |
-| 8 | Domain Model에 JPA 어노테이션 사용 | 도메인이 인프라 관심사에 오염 | Domain Model(순수 Kotlin)과 JPA Entity를 분리 |
-| 9 | UseCase에서 다른 UseCase를 주입 | 계층 규칙 위반, 중첩 트랜잭션 위험 | 여러 도메인의 Application Service를 주입 |
-| 10 | Controller에서 Service나 Repository를 주입 | UseCase 계층을 건너뜀 | Controller는 UseCase만 주입 |
-| 11 | Domain Model에서 DTO 클래스를 참조 | 역방향 의존성 | `{Feature}Result.from(model)` 패턴 사용 |
-| 12 | Application Service나 Domain에서 `.toKst()` 호출 | 표시 관심사가 비즈니스 계층에 유출 | KST 변환은 Response DTO에서만 수행 |
+| 8 | UseCase에서 다른 UseCase를 주입 | 계층 규칙 위반, 중첩 트랜잭션 위험 | 여러 도메인의 Application Service를 주입 |
+| 9 | Controller에서 Service나 Repository를 주입 | UseCase 계층을 건너뜀 | Controller는 UseCase만 주입 |
+| 10 | Application Service나 Domain에서 `.toKst()` 호출 | 표시 관심사가 비즈니스 계층에 유출 | KST 변환은 Response DTO에서만 수행 |

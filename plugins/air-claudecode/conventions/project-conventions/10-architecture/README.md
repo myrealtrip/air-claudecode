@@ -7,8 +7,8 @@ modules/
 ├── common/                # Codes, Exceptions, Values, Utils, Extensions
 ├── common-web/            # Filters, Interceptors, ExceptionHandler, ApiResource
 ├── test-support/          # Test fixtures, REST Docs support
-├── domain/                # Domain Model, Policy, Service, Event, UseCase, Application Service, DTO
-├── infrastructure/        # JPA Entity, Mapper, Repository, Cache, Redis, RestClient, Export, Slack
+├── domain/                # Entity, Repository, Policy, Service, Event, UseCase, Application Service, DTO
+├── infrastructure/        # Cache, Redis, RestClient, Export, Slack
 ├── bootstrap/
 │   ├── {name}-api-app/    # API server (Controller, Request, Response)
 │   └── {name}-worker-app/ # Worker server
@@ -27,15 +27,15 @@ domain → common (only)
 common → nothing
 ```
 
-- domain 내부: Application DTO → Domain Model (Domain Model은 DTO를 참조하지 않는다)
+- domain 내부: Entity와 Application DTO는 서로 참조할 수 있다. Entity.of(Command) 패턴으로 생성하고, Result.of(entity) 패턴으로 변환한다.
 
 ## 4계층 구조
 
-```
+```text
 Controller (bootstrap) → UseCase (domain)
   → Application Service (domain)
     → Domain Model / Policy / Service (domain)
-      ← JPA Entity / Repository / Mapper (infrastructure)
+      ← Repository (infrastructure)
 ```
 
 상위 계층만 하위 계층에 의존한다. 인프라 계층은 도메인 계층에 의존한다. 역방향 의존은 금지한다.
@@ -46,11 +46,10 @@ Controller (bootstrap) → UseCase (domain)
 |------|--------|------------|-----------|-----------|
 | 표현 | Controller | `@RestController` | UseCase만 | Service, Repository, Infrastructure |
 | 응용 | UseCase | `@Service`, `@Transactional` | Application Service, Domain Policy/Service, EventPublisher | Repository, 다른 UseCase |
-| 응용 | Application Service | `@Service` | Repository, Mapper | 다른 Application Service |
+| 응용 | Application Service | `@Service` | Repository | 다른 Application Service |
 | 도메인 | Policy | `@Component` | 도메인 컴포넌트만 | Repository, Infrastructure |
 | 도메인 | Domain Service | `@Component` | 도메인 컴포넌트만 | Repository, Infrastructure |
 | 인프라 | Repository | `@Repository` | - | - |
-| 인프라 | Mapper | `@Component` | - | - |
 
 ## 트랜잭션 소유권
 
@@ -76,9 +75,9 @@ API Request → Controller converts → Command (Application)
 
 ## 패키지 규칙
 
-- Domain: `{projectGroup}.{appname}/{domain/model,domain/policy,domain/service,domain/event,application/usecase,application/service,application/dto}/`
+- Domain: `{projectGroup}.{appname}/{domain/{feature},domain/policy,domain/service,domain/event,application/usecase,application/service,application/dto}/`
 - Presentation: `{projectGroup}.{appname}/{presentation/external,presentation/internal}/`
-- Infrastructure: `{projectGroup}.{appname}/{infrastructure/persistence,infrastructure/client,infrastructure/event}/`
+- Infrastructure: `{projectGroup}.{appname}/{infrastructure/client,infrastructure/event}/`
 
 ## 안티패턴
 
@@ -86,5 +85,4 @@ API Request → Controller converts → Command (Application)
 - JPA 엔티티를 API 응답으로 반환 (Domain Model → Result → Response를 거쳐 노출)
 - UseCase에 비즈니스 로직 작성 (Domain Policy/Service에 작성해야 한다)
 - Application Service에 `@Transactional` 선언 (UseCase에서만 관리)
-- Domain Model에 JPA 어노테이션 사용 (Domain Model과 JPA Entity를 분리)
 - UseCase에서 다른 UseCase를 주입 (Application Service를 주입해야 한다)

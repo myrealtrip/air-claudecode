@@ -37,13 +37,13 @@ fun main(args: Array<String>) {
 // UTC 입력 — 그대로 전달
 @PostMapping("/events")
 fun createEvent(@Valid @RequestBody request: CreateEventRequest): ResponseEntity<ApiResource<EventResponse>> =
-    ResponseEntity.ok(ApiResource.success(EventResponse.from(createEventUseCase(request.toCommand()))))
+    ResponseEntity.ok(ApiResource.success(EventResponse.of(createEventUseCase(request.toCommand()))))
 
 // KST 입력 — 진입점에서 즉시 UTC로 변환
 @PostMapping("/events")
 fun createEvent(@Valid @RequestBody request: CreateEventRequest): ResponseEntity<ApiResource<EventResponse>> {
     val utcStartAt = request.startAt.toUtc()  // KST → UTC 변환
-    return ResponseEntity.ok(ApiResource.success(EventResponse.from(
+    return ResponseEntity.ok(ApiResource.success(EventResponse.of(
         createEventUseCase(CreateEventCommand(name = request.name, startAt = utcStartAt))
     )))
 }
@@ -78,7 +78,7 @@ data class EventResponse(
     val createdAt: LocalDateTime,
 ) {
     companion object {
-        fun from(result: EventResult): EventResponse =
+        fun of(result: EventResult): EventResponse =
             EventResponse(
                 id = result.id,
                 name = result.name,

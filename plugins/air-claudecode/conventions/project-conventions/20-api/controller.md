@@ -72,21 +72,21 @@ class OrderExternalController(
     fun getOrder(
         @PathVariable id: Long,
     ): ResponseEntity<ApiResource<OrderResponse>> {
-        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.of(getOrderUseCase(id))))
     }
 
     @GetMapping
     fun getOrders(
         @PageableDefault(size = 100) pageable: Pageable,
     ): ResponseEntity<ApiResource<Page<OrderResponse>>> {
-        return ResponseEntity.ok(ApiResource.ofPage(getOrdersUseCase(pageable).map { OrderResponse.from(it) }))
+        return ResponseEntity.ok(ApiResource.ofPage(getOrdersUseCase(pageable).map { OrderResponse.of(it) }))
     }
 
     @PostMapping
     fun createOrder(
         @Valid @RequestBody request: CreateOrderRequest,
     ): ResponseEntity<ApiResource<OrderResponse>> {
-        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(createOrderUseCase(request.toCommand()))))
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.of(createOrderUseCase(request.toCommand()))))
     }
 
     @PutMapping("/{id}")
@@ -94,7 +94,7 @@ class OrderExternalController(
         @PathVariable id: Long,
         @Valid @RequestBody request: UpdateOrderRequest,
     ): ResponseEntity<ApiResource<OrderResponse>> {
-        return ResponseEntity.ok(ApiResource.success(OrderResponse.from(updateOrderUseCase(id, request.toCommand()))))
+        return ResponseEntity.ok(ApiResource.success(OrderResponse.of(updateOrderUseCase(id, request.toCommand()))))
     }
 
     @DeleteMapping("/{id}")
@@ -121,7 +121,7 @@ fun getOrders(
     @RequestParam(required = false) userId: Long?,
     @PageableDefault(size = 100) pageable: Pageable,
 ): ResponseEntity<ApiResource<Page<OrderResponse>>> {
-    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(status, userId, pageable).map { OrderResponse.from(it) }))
+    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(status, userId, pageable).map { OrderResponse.of(it) }))
 }
 
 // 복합: 파라미터 3개 이상 — SearchRequest + @ModelAttribute 사용
@@ -146,7 +146,7 @@ fun searchOrders(
     @ModelAttribute request: OrderSearchRequest,
     @PageableDefault(size = 100) pageable: Pageable,
 ): ResponseEntity<ApiResource<Page<OrderResponse>>> {
-    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(request.toSearchCondition(), pageable).map { OrderResponse.from(it) }))
+    return ResponseEntity.ok(ApiResource.ofPage(searchOrdersUseCase(request.toSearchCondition(), pageable).map { OrderResponse.of(it) }))
 }
 ```
 
@@ -239,7 +239,7 @@ data class OrderResponse(
     val scheduledAtKst: LocalDateTime,
 ) {
     companion object {
-        fun from(result: OrderResult): OrderResponse =
+        fun of(result: OrderResult): OrderResponse =
             OrderResponse(scheduledAtKst = result.scheduledAt.toKst())
     }
 }

@@ -255,7 +255,7 @@ data class OrderCreatedEvent(val orderResponse: OrderResponse)
 fun createOrder(request: CreateOrderRequest): OrderResult {
     val order = orderRepository.save(Order.create(request))
     applicationEventPublisher.publishEvent(OrderCreatedEvent(order.id))
-    return OrderResult.from(order)
+    return OrderResult.of(order)
 }
 
 @Async

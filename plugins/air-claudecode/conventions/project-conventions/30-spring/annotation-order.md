@@ -36,7 +36,7 @@ Spring/JPA 어노테이션을 먼저, Lombok을 마지막에 선언한다. 핵�
 class Order(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
+    val id: Long? = null,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -65,11 +65,11 @@ class OrderExternalController(
     @PreAuthorize("hasRole('USER')")
     @Cacheable(cacheNames = [CacheNames.DEFAULT], key = "#id")
     fun getOrder(@PathVariable id: Long): ResponseEntity<ApiResource<OrderResponse>> =
-        ResponseEntity.ok(ApiResource.success(OrderResponse.from(getOrderUseCase(id))))
+        ResponseEntity.ok(ApiResource.success(OrderResponse.of(getOrderUseCase(id))))
 
     @PostMapping
     fun createOrder(@Valid @RequestBody request: CreateOrderRequest): ResponseEntity<ApiResource<OrderResponse>> =
-        ResponseEntity.ok(ApiResource.success(OrderResponse.from(createOrderUseCase(request.toCommand()))))
+        ResponseEntity.ok(ApiResource.success(OrderResponse.of(createOrderUseCase(request.toCommand()))))
 
     @DeleteMapping("/{id}")
     fun cancelOrder(@PathVariable id: Long): ResponseEntity<Unit> {
@@ -84,7 +84,7 @@ class OrderExternalController(
 @RequiredArgsConstructor
 class OrderService(private val orderRepository: OrderRepository) {
     fun findById(id: Long): OrderResult =
-        OrderResult.from(orderRepository.findById(id) ?: throw OrderNotFoundException(id))
+        OrderResult.of(orderRepository.findById(id) ?: throw OrderNotFoundException(id))
 
     @Transactional
     @CacheEvict(cacheNames = [CacheNames.DEFAULT], key = "#id")
